@@ -96,7 +96,6 @@ allprojects {
             options.addStringOption('Xdoclint:none,-missing', '-quiet')
         }
     }
-
     if (JavaVersion.current().isJava9Compatible()) {
         tasks.withType(Javadoc) {
             options.addStringOption("-release", "8");
@@ -104,24 +103,28 @@ allprojects {
     }
 }
 
-configure(subprojects - project(":tests:gdx-tests-android")) {
+configure(subprojects - project(":tests:gdx-tests-android") - project(":backends:gdx-backend-android")) {
     apply plugin: "java-library"
-    apply plugin: "com.diffplug.spotless"
 
     compileJava {
         options.fork = true
         options.incremental = true
     }
-    
+
     java {
         withJavadocJar()
         withSourcesJar()
     }
+}
+
+allprojects {
+    apply plugin: "com.diffplug.spotless"
 
     spotless {
         lineEndings 'UNIX'
 
         java {
+            target '*.java'
             removeUnusedImports()
             eclipse().configFile new File(rootProject.projectDir.absolutePath, 'eclipse-formatter.xml')
         }
@@ -212,7 +215,7 @@ task fetchExternalNatives(dependsOn: [ fetchAngleNativesZIP, fetchGlfwAWT, fetch
 }
 
 task fetchGdxNativesZIP(dependsOn: fetchExternalNatives, type: Download) {
-    src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
+        src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
     dest "build/natives.zip"
     onlyIfModified true
     useETag "all"
