@@ -83,3 +83,10 @@ jnigen {
 		extraLib("libs/ObjectAL.xcframework/ios-arm64_x86_64-simulator/libObjectAL.a", "simulator")
 	}
 }
+
+// Workaround needed for IDEA to have resources on classpath when running tests (like gdx-tests-lwjgl3)
+task copyIdeaResources(type: Copy) {
+    from "${projectDir}/src/main/resources"
+    into "${buildDir}/classes/java/main/"
+}
+processResources.dependsOn copyIdeaResources
