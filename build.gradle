@@ -96,9 +96,26 @@ allprojects {
             options.addStringOption('Xdoclint:none,-missing', '-quiet')
         }
     }
+
     if (JavaVersion.current().isJava9Compatible()) {
         tasks.withType(Javadoc) {
             options.addStringOption("-release", "8");
+        }
+    }
+
+    apply plugin: "com.diffplug.spotless"
+
+    spotless {
+        lineEndings 'UNIX'
+
+        java {
+            target '*.java'
+            removeUnusedImports()
+            eclipse().configFile new File(rootProject.projectDir.absolutePath, 'eclipse-formatter.xml')
+        }
+        groovyGradle {
+            target '*.gradle'
+            greclipse().configFile new File(rootProject.projectDir.absolutePath, 'eclipse-formatter.xml')
         }
     }
 }
@@ -114,24 +131,6 @@ configure(subprojects - project(":tests:gdx-tests-android") - project(":backends
     java {
         withJavadocJar()
         withSourcesJar()
-    }
-}
-
-allprojects {
-    apply plugin: "com.diffplug.spotless"
-
-    spotless {
-        lineEndings 'UNIX'
-
-        java {
-            target '*.java'
-            removeUnusedImports()
-            eclipse().configFile new File(rootProject.projectDir.absolutePath, 'eclipse-formatter.xml')
-        }
-        groovyGradle {
-            target '*.gradle'
-            greclipse().configFile new File(rootProject.projectDir.absolutePath, 'eclipse-formatter.xml')
-        }
     }
 }
 
