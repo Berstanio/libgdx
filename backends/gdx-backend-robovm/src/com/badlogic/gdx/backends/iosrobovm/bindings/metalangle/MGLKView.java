@@ -35,7 +35,7 @@ import org.robovm.rt.bro.ptr.Ptr;
 /*<javadoc>*/
 
 /*</javadoc>*/
-/*<annotations>*/@Library("MetalANGLE") @NativeClass/*</annotations>*/
+/*<annotations>*/@NativeClass/*</annotations>*/
 /*<visibility>*/public/*</visibility>*/ class /*<name>*/MGLKView/*</name>*/ 
     extends /*<extends>*/UIView/*</extends>*/
     /*<implements>*//*</implements>*/ {

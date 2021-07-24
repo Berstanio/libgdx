@@ -31,7 +31,7 @@ import org.robovm.rt.bro.ptr.Ptr;
 /*<javadoc>*/
 
 /*</javadoc>*/
-/*<annotations>*/@Library("MetalANGLE") @NativeClass/*</annotations>*/
+/*<annotations>*/@NativeClass/*</annotations>*/
 /*<visibility>*/public/*</visibility>*/ class /*<name>*/MGLLayer/*</name>*/ 
     extends /*<extends>*/CALayer/*</extends>*/
     /*<implements>*//*</implements>*/ {

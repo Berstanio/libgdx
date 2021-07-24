@@ -31,7 +31,7 @@ import org.robovm.rt.bro.ptr.VoidPtr;
 /*<javadoc>*/
 
 /*</javadoc>*/
-/*<annotations>*/@Library("MetalANGLE") @NativeClass/*</annotations>*/
+/*<annotations>*/@NativeClass/*</annotations>*/
 /*<visibility>*/public/*</visibility>*/ class /*<name>*/MGLContext/*</name>*/ 
     extends /*<extends>*/NSObject/*</extends>*/
     /*<implements>*//*</implements>*/ {
