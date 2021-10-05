@@ -80,12 +80,13 @@ dependencies {
     compile project(":tests:gdx-tests")
     compile project(":backends:gdx-backend-moe")
     natives testnatives.ios
+    compileOnly "org.graalvm.nativeimage:svm:21.0.0.2"
 }
 
 // Setup Multi-OS Engine
 moe {
     nativeImage {
-        options = ["--features=com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBase,com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBullet"]
+        options = ["--features=com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBase,com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBullet,com.badlogicgames.gdx.tests.TestConfigRegistration"]
     }
     xcode {
         project 'xcode/IOSTests.xcodeproj'
