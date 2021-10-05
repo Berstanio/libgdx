@@ -16,15 +16,14 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
-import com.badlogic.gdx.backends.bindings.metalangle.MGLKViewController;
 import org.moe.natj.general.NatJ;
 import org.moe.natj.general.Pointer;
 import org.moe.natj.objc.ann.Selector;
 import apple.coregraphics.struct.CGRect;
+import apple.glkit.GLKViewController;
 import apple.uikit.enums.UIInterfaceOrientation;
 
-
-class IOSUIViewController extends MGLKViewController {
+class IOSUIViewController extends GLKViewController {
 
 	private IOSApplication app;
 	private IOSGraphics graphics;
@@ -42,6 +41,7 @@ class IOSUIViewController extends MGLKViewController {
 	protected IOSUIViewController (Pointer peer) {
 		super(peer);
 	}
+
 	public IOSUIViewController init (IOSApplication app, IOSGraphics graphics) {
 		init();
 		this.app = app;
@@ -60,8 +60,7 @@ class IOSUIViewController extends MGLKViewController {
 	@Override
 	public void viewDidAppear (boolean animated) {
 		super.viewDidAppear(animated);
-		if (app.viewControllerListener != null)
-			app.viewControllerListener.viewDidAppear(animated);
+		if (app.viewControllerListener != null) app.viewControllerListener.viewDidAppear(animated);
 	}
 
 	@Override
@@ -108,7 +107,7 @@ class IOSUIViewController extends MGLKViewController {
 	public boolean prefersStatusBarHidden () {
 		return !app.config.statusBarVisible;
 	}
-	
+
 	@Override
 	public boolean prefersHomeIndicatorAutoHidden () {
 		return app.config.hideHomeIndicator;
