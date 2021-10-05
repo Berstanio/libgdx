@@ -26,9 +26,17 @@ sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
 dependencies {
-	compile project(":tests:gdx-tests")
-	compile project(":backends:gdx-backend-robovm")
-	compile testnatives.ios
+    compile project(":tests:gdx-tests")
+    //MetalANGLE
+    compile "io.github.berstanio:gdx-backend-robovm-metalangle:1.10.1-SNAPSHOT"
+    compile "io.github.berstanio:gdx-platform:1.10.1-SNAPSHOT:natives-ios-metalangle"
+    //OpenGLES
+    //compile "com.badlogicgames.gdx:gdx-backend-robovm:1.10.1-SNAPSHOT"
+    //compile "com.badlogicgames.gdx:gdx-platform:1.10.1-SNAPSHOT:natives-ios"
+
+    compile 'com.badlogicgames.gdx:gdx-bullet:1.10.1-SNAPSHOT'
+    compile 'com.badlogicgames.gdx:gdx-freetype:1.10.1-SNAPSHOT'
+    compile 'com.badlogicgames.gdx:gdx-box2d:1.10.1-SNAPSHOT'
 }
 
 ext {
