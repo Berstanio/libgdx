@@ -1,9 +1,9 @@
 
 package com.badlogic.gdx.backends.iosrobovm;
 
+import com.badlogic.gdx.backends.iosrobovm.bindings.metalangle.MGLKViewController;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import org.robovm.apple.foundation.NSSet;
-import org.robovm.apple.glkit.GLKViewController;
 import org.robovm.apple.uikit.UIDevice;
 import org.robovm.apple.uikit.UIInterfaceOrientation;
 import org.robovm.apple.uikit.UIInterfaceOrientationMask;
@@ -12,7 +12,7 @@ import org.robovm.apple.uikit.UIPressesEvent;
 import org.robovm.apple.uikit.UIRectEdge;
 import org.robovm.apple.uikit.UIUserInterfaceIdiom;
 
-public class IOSUIViewController extends GLKViewController {
+public class IOSUIViewController extends MGLKViewController {
 	final IOSApplication app;
 	final IOSGraphics graphics;
 
