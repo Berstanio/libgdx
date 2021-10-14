@@ -40,6 +40,7 @@ jobs:
           /usr/bin/xcodebuild -version
           ./gradlew jniGen jnigenBuildIOS
           ./backends/gdx-backend-robovm/build-objectal.sh
+          mvn validate
 
       - name: Pack artifacts
         run: |
