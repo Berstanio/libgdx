@@ -60,6 +60,7 @@
                                 </exec>
                                 <delete file="target/iosReal/libMetalANGLE_static.a"/>
                                 <delete file="target/iosSim/libMetalANGLE_static_stripped.a"/>
+                                <copyfile forceoverwrite="true" src="target/ios/libMetalANGLE_static.a" dest="../../libs/ios32/libMetalANGLE_static.a"/>
                             </target>
                         </configuration>
                         <goals>
