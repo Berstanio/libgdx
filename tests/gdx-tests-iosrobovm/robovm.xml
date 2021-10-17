@@ -43,6 +43,8 @@
   <frameworks>
     <framework>UIKit</framework>
     <framework>OpenGLES</framework>
+    <framework>Metal</framework>
+    <framework>MetalANGLE</framework>
     <framework>QuartzCore</framework>
     <framework>CoreGraphics</framework>
     <framework>OpenAL</framework>
@@ -50,4 +52,8 @@
     <framework>AVFoundation</framework>
     <framework>GameController</framework>
   </frameworks>
+  <frameworkPaths>
+    <path variant="device">../../gdx/libs/ios32/real/</path>
+    <path variant="simulator">../../gdx/libs/ios32/sim/</path>
+  </frameworkPaths>
 </config>

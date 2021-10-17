@@ -23,52 +23,6 @@
         <sourceDirectory>src</sourceDirectory>
         
         <plugins>
-            <!-- We need to fetch the MetalANGLE libs when the other libs get build/copied/fetched. Maybe there is a better way than using a ant script -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>fetch-metalangle</id>
-                        <phase>validate</phase>
-                        <configuration>
-                            <target>
-                                <mkdir dir="target/iosSim/"/>
-                                <get src="https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/libMetalANGLE.a.ios.simulator.zip" dest="target/"/>
-                                <unzip src="target/libMetalANGLE.a.ios.simulator.zip" dest="target/iosSim/"/>
-                                <delete file="target/libMetalANGLE.a.ios.simulator.zip"/>
-                                <exec executable="lipo">
-                                    <arg value="-remove"/>
-                                    <arg value="arm64"/>
-                                    <arg value="target/iosSim/libMetalANGLE_static.a"/>
-                                    <arg value="-output"/>
-                                    <arg value="target/iosSim/libMetalANGLE_static_stripped.a"/>
-                                </exec>
-                                <delete file="target/iosSim/libMetalANGLE_static.a"/>
-                                <mkdir dir="target/iosReal/"/>
-                                <get src="https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/libMetalANGLE.a.ios.zip" dest="target/"/>
-                                <unzip src="target/libMetalANGLE.a.ios.zip" dest="target/iosReal/"/>
-                                <delete file="target/libMetalANGLE.a.ios.zip"/>
-                                <mkdir dir="target/ios/"/>
-                                <exec executable="lipo">
-                                    <arg value="-create"/>
-                                    <arg value="target/iosReal/libMetalANGLE_static.a"/>
-                                    <arg value="target/iosSim/libMetalANGLE_static_stripped.a"/>
-                                    <arg value="-output"/>
-                                    <arg value="target/ios/libMetalANGLE_static.a"/>
-                                </exec>
-                                <delete file="target/iosReal/libMetalANGLE_static.a"/>
-                                <delete file="target/iosSim/libMetalANGLE_static_stripped.a"/>
-                                <copyfile forceoverwrite="true" src="target/ios/libMetalANGLE_static.a" dest="../../libs/ios32/libMetalANGLE_static.a"/>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>2.6</version>

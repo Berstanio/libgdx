@@ -19,6 +19,7 @@
       <outputDirectory>/META-INF/robovm/ios/libs</outputDirectory>
       <includes>
         <include>*.a</include>
+        <include>*/*.framework/**</include>
       </includes>
     </fileSet>
   </fileSets>

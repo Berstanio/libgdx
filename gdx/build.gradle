@@ -68,3 +68,14 @@ jnigen {
 		cppExcludes = []
 	}
 }
+
+task downloadMetalANGLE {
+	ant.get(src: 'https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/MetalANGLE.framework.ios.zip', dest: 'build/tmp/')
+	ant.mkdir(dir: 'libs/ios32/real/')
+	ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.zip', dest: 'libs/ios32/real/')
+	ant.get(src: 'https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/MetalANGLE.framework.ios.simulator.zip', dest: 'build/tmp/')
+	ant.mkdir(dir: 'libs/ios32/sim/')
+	ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.simulator.zip', dest: 'libs/ios32/sim/')
+}
+downloadMetalANGLE.shouldRunAfter jnigenBuildIOS
+
