@@ -1,7 +1,14 @@
-<config>	
+<config>
 	<libs>
 		<lib>libs/libgdx.a</lib>
 		<lib>libs/libObjectAL.a</lib>
-		<lib>libs/libMetalANGLE_static.a</lib>
 	</libs>
+	<frameworks>
+		<framework>MetalANGLE</framework>
+		<framework>Metal</framework>
+	</frameworks>
+	<frameworkPaths>
+		<path variant="device">libs/real/</path>
+		<path variant="simulator">libs/sim/</path>
+	</frameworkPaths>
 </config>
