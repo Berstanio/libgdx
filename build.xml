@@ -264,6 +264,7 @@ depends="clean,fetch,gdx-setup,gdx-core,gdx-backend-lwjgl,gdx-backend-lwjgl3,gdx
 		<!-- copy distribution files (licences etc.) -->
 		<copy tofile="${distDir}/README" file="README.md"/>
 		<copy tofile="${distDir}/LICENSE" file="LICENSE"/>
+		<copy tofile="${distDir}/THIRDPARTY" file="THIRDPARTY"/>
 		<copy tofile="${distDir}/CC-LICENSE" file="CC-LICENSE"/>
 		<copy tofile="${distDir}/AUTHORS" file="AUTHORS"/>
 		<copy tofile="${distDir}/CONTRIBUTORS" file="CONTRIBUTORS"/>
