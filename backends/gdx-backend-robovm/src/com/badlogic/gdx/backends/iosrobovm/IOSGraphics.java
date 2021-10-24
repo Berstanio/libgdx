@@ -87,6 +87,10 @@ public class IOSGraphics extends AbstractGraphics {
 	public IOSGraphics (IOSApplication app, IOSApplicationConfiguration config, IOSInput input, boolean useGLES30) {
 		this.config = config;
 
+		if (!config.useMetal) {
+			disableMetal();
+		}
+
 		// setup view and OpenGL
 		screenBounds = app.computeBounds();
 
@@ -279,6 +283,9 @@ public class IOSGraphics extends AbstractGraphics {
 
 	public void willPause (MGLKViewController controller, boolean pause) {
 	}
+
+	/** Disables the Metal backend in MetalANGLE. This needs to be called at the beginning of the constructor! */
+	private static native void disableMetal ();
 
 	@Override
 	public GL20 getGL20 () {

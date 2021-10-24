@@ -6,6 +6,7 @@
 #include <MetalANGLE/GLES2/gl2.h>
 #include <MetalANGLE/GLES2/gl2ext.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static jclass bufferClass;
 static jclass byteBufferClass;
@@ -2009,6 +2010,17 @@ JNIEXPORT void JNICALL Java_com_badlogic_gdx_backends_iosrobovm_IOSGLES20_glView
   (JNIEnv *env, jobject, jint x, jint y, jint width, jint height)
 {
 	glViewport( x, y, width, height );
+}
+
+/*
+ * Class:     com_badlogic_gdx_backends_iosrobovm_IOSGraphics
+ * Method:    disableMetal
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_badlogic_gdx_backends_iosrobovm_IOSGraphics_disableMetal
+  (JNIEnv *env, jclass)
+{
+	setenv("ANGLE_DEFAULT_PLATFORM", "gl", 1);
 }
 #endif
 #endif
