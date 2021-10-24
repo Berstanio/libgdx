@@ -5,6 +5,10 @@
 - [BREAKING CHANGE] Legacy LWJGL3 projects must update the sourceCompatibility to 1.8 or higher.
 - iOS: Update to MobiVM 2.3.15
 - Update to LWJGL 3.3.0
+- [BREAKING CHANGE] iOS: The variable types in IOSApplicationConfiguration for colorFormat/depthFormat/stencilFormat/multisample have changed from "org.robovm.apple.glkit.GLKView[...]" to "com.badlogic.gdx.backends.iosrobovm.bindings.metalangle.MGL[...]"
+- iOS: Replaced OpenGLES with MetalANGLE
+- iOS API Addition: New configuration "useMetal" to disable Metal backend in MetalANGLE
+- iOS: Update to MobiVM 2.3.14
 - API Addition: ObjLoader now supports ambientColor, ambientTexture, transparencyTexture, specularTexture and shininessTexture
 - API Addition: PointSpriteParticleBatch blending is now configurable.
 - TOOLS Features: Blending mode and sort mode can be changed in Flame particle 3D editor.
