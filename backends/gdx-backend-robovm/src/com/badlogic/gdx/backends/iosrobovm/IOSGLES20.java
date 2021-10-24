@@ -370,4 +370,7 @@ public class IOSGLES20 implements GL20 {
 	}
 
 	public native void glViewportJni (int x, int y, int width, int height);
+
+	/** Disables the Metal backend in MetalANGLE */
+	protected static native void disableMetal ();
 }

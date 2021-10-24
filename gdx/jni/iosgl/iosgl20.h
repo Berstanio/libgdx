@@ -1319,6 +1319,14 @@ JNIEXPORT void JNICALL Java_com_badlogic_gdx_backends_iosrobovm_IOSGLES20_glVert
 JNIEXPORT void JNICALL Java_com_badlogic_gdx_backends_iosrobovm_IOSGLES20_glViewportJni
   (JNIEnv *, jobject, jint, jint, jint, jint);
 
+/*
+ * Class:     com_badlogic_gdx_backends_iosrobovm_IOSGLES20
+ * Method:    disableMetal
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_badlogic_gdx_backends_iosrobovm_IOSGLES20_disableMetal
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

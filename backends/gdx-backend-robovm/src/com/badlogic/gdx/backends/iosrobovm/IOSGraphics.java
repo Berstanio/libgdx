@@ -87,6 +87,10 @@ public class IOSGraphics extends AbstractGraphics {
 	public IOSGraphics (IOSApplication app, IOSApplicationConfiguration config, IOSInput input, boolean useGLES30) {
 		this.config = config;
 
+		if (!config.useMetal) {
+			IOSGLES20.disableMetal();
+		}
+
 		// setup view and OpenGL
 		screenBounds = app.computeBounds();
 

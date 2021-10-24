@@ -71,6 +71,9 @@ public class IOSApplicationConfiguration {
 	 * @deprecated this option is currently experimental and not yet fully supported, expect issues. */
 	@Deprecated public boolean useGL30 = false;
 
+	/** whether Metal should be used as backend in MetalANGLE or not */
+	public boolean useMetal = true;
+
 	/** whether the status bar should be visible or not **/
 	public boolean statusBarVisible = false;
 
