@@ -1,4 +1,4 @@
-package com.badlogicgames.gdx.tests;
+package com.badlogic.gdx.tests;
 
 import com.badlogic.gdx.tests.AbstractTestWrapper;
 import com.badlogic.gdx.tests.utils.GdxTest;

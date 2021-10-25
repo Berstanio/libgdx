@@ -14,7 +14,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-package com.badlogicgames.gdx.tests;
+package com.badlogic.gdx.tests;
 
 import apple.uikit.c.UIKit;
 import com.badlogic.gdx.backends.iosmoe.IOSApplication;

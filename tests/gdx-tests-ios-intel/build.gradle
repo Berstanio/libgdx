@@ -22,7 +22,11 @@ buildscript {
     }
     dependencies {
         // Multi-OS Engine plugin
-        classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "${versions.moe}"
+        //Is working!
+        classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "1.9.0-SNAPSHOT"
+        // Not working
+        //classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "2.0.0-SNAPSHOT"
+
     }
 }
 
@@ -77,6 +81,7 @@ task copyNatives  {
 }
 
 dependencies {
+    compile project(":gdx")
     compile project(":tests:gdx-tests")
     compile project(":backends:gdx-backend-moe")
     natives testnatives.ios
@@ -85,10 +90,10 @@ dependencies {
 
 // Setup Multi-OS Engine
 moe {
-    nativeImage {
-        options = ["--features=com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBase,com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBullet,com.badlogicgames.gdx.tests.TestConfigRegistration"]
-    }
-    xcode {
+/*    nativeImage {
+        options = ["--features=com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBase,com.badlogic.gdx.backends.svm.ConfigCollectionFeatureBullet"]
+   }
+  */   xcode {
         project 'xcode/IOSTests.xcodeproj'
         mainTarget 'IOSTests'
         testTarget 'IOSTests-Test'

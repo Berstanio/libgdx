@@ -21,7 +21,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>MOE.Main.Class</key>
-	<string>com.badlogicgames.gdx.tests.IOSTests</string>
+	<string>com.badlogic.gdx.tests.IOSTests</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
