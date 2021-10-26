@@ -23,7 +23,7 @@ buildscript {
     dependencies {
         // Multi-OS Engine plugin
         //Is working!
-        classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "1.9.0-SNAPSHOT"
+        classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "2.0.0-SNAPSHOT"
         // Not working
         //classpath group: 'org.multi-os-engine', name: 'moe-gradle', version: "2.0.0-SNAPSHOT"
 
@@ -85,7 +85,7 @@ dependencies {
     compile project(":tests:gdx-tests")
     compile project(":backends:gdx-backend-moe")
     natives testnatives.ios
-    compileOnly "org.graalvm.nativeimage:svm:21.0.0.2"
+    compileOnly "org.graalvm.nativeimage:svm:21.2.0"
 }
 
 // Setup Multi-OS Engine
