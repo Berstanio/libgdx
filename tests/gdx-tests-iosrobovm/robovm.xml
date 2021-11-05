@@ -42,7 +42,6 @@
   </libs>
   <frameworks>
     <framework>UIKit</framework>
-    <framework>OpenGLES</framework>
     <framework>Metal</framework>
     <framework>MetalANGLE</framework>
     <framework>QuartzCore</framework>
