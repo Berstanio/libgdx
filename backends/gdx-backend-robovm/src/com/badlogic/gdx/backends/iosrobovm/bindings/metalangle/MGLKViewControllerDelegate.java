@@ -39,7 +39,7 @@ import org.robovm.objc.annotation.Method;
 	/* </properties> */
 	/* <methods> */
 	@Method(selector = "mglkViewControllerUpdate:")
-	void mglkViewControllerUpdate (MGLKViewController controller);
+	void update (MGLKViewController controller);
 	/* </methods> */
 	/* <adapter> */
 	/* </adapter> */

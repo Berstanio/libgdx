@@ -41,7 +41,7 @@ import org.robovm.objc.annotation.NotImplemented;
 	/* <members> *//* </members> */
 	/* <methods> */
 	@NotImplemented("mglkViewControllerUpdate:")
-	public void mglkViewControllerUpdate (MGLKViewController controller) {
+	public void update (MGLKViewController controller) {
 	}
 	/* </methods> */
 }

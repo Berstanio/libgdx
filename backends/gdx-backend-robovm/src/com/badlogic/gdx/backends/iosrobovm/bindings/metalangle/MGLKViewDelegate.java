@@ -41,7 +41,7 @@ import org.robovm.rt.bro.annotation.ByVal;
 	/* </properties> */
 	/* <methods> */
 	@Method(selector = "mglkView:drawInRect:")
-	void mglkViewDrawInRect (MGLKView view, @ByVal CGRect rect);
+	void draw (MGLKView view, @ByVal CGRect rect);
 	/* </methods> */
 	/* <adapter> */
 	/* </adapter> */

@@ -104,6 +104,6 @@ import org.robovm.rt.bro.ptr.Ptr;
 	/* <members> *//* </members> */
 	/* <methods> */
 	@Method(selector = "mglkView:drawInRect:")
-	public native void mglkViewDrawInRect (MGLKView view, @ByVal CGRect rect);
+	public native void draw (MGLKView view, @ByVal CGRect rect);
 	/* </methods> */
 }

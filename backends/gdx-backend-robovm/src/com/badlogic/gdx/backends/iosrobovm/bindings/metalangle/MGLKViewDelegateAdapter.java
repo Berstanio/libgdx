@@ -43,7 +43,7 @@ import org.robovm.rt.bro.annotation.ByVal;
 	/* <members> *//* </members> */
 	/* <methods> */
 	@NotImplemented("mglkView:drawInRect:")
-	public void mglkViewDrawInRect (MGLKView view, @ByVal CGRect rect) {
+	public void draw (MGLKView view, @ByVal CGRect rect) {
 	}
 	/* </methods> */
 }

@@ -575,7 +575,7 @@ public class IOSGraphics extends AbstractGraphics {
 
 	private class IOSViewDelegate extends NSObject implements MGLKViewDelegate, MGLKViewControllerDelegate {
 		@Override
-		public void mglkViewControllerUpdate (MGLKViewController controller) {
+		public void update (MGLKViewController controller) {
 			IOSGraphics.this.update(controller);
 		}
 
@@ -586,7 +586,7 @@ public class IOSGraphics extends AbstractGraphics {
 		}
 
 		@Override
-		public void mglkViewDrawInRect (MGLKView view, CGRect rect) {
+		public void draw (MGLKView view, CGRect rect) {
 			IOSGraphics.this.draw(view, rect);
 		}
 	}
