@@ -281,9 +281,6 @@ public class IOSGraphics extends AbstractGraphics {
 		isFrameRequested = false;
 	}
 
-	public void willPause (MGLKViewController controller, boolean pause) {
-	}
-
 	/** Disables the Metal backend in MetalANGLE. This needs to be called at the beginning of the constructor! */
 	private static native void disableMetal ();
 
@@ -577,12 +574,6 @@ public class IOSGraphics extends AbstractGraphics {
 		@Override
 		public void update (MGLKViewController controller) {
 			IOSGraphics.this.update(controller);
-		}
-
-		// Consider to remove since IOSGraphics.this.willPause is empty.
-		// @Override
-		public void willPause (MGLKViewController controller, boolean pause) {
-			IOSGraphics.this.willPause(controller, pause);
 		}
 
 		@Override
