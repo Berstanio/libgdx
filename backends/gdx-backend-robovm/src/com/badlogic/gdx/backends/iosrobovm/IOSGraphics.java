@@ -235,6 +235,13 @@ public class IOSGraphics extends AbstractGraphics {
 			String vendorString = gl20.glGetString(GL20.GL_VENDOR);
 			String rendererString = gl20.glGetString(GL20.GL_RENDERER);
 			glVersion = new GLVersion(Application.ApplicationType.iOS, versionString, vendorString, rendererString);
+			if (rendererString.contains("Metal")) {
+				Gdx.app.debug("IOSGraphics", "Using Metal backend.");
+			} else if (rendererString.contains("OpenGL")) {
+				Gdx.app.debug("IOSGraphics", "Using OpenGL ES backend.");
+			} else {
+				Gdx.app.debug("IOSGraphics", "Couldn't identify backend. (" + rendererString + ")");
+			}
 
 			updateSafeInsets();
 			app.listener.create();
