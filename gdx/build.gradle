@@ -76,11 +76,20 @@ jnigen {
 task downloadMetalANGLE {
 	doLast {
 		ant.get(src: 'https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/MetalANGLE.framework.ios.zip', dest: 'build/tmp/')
-		ant.mkdir(dir: 'libs/ios32/real/')
-		ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.zip', dest: 'libs/ios32/real/')
+		ant.mkdir(dir: 'build/tmp/real/')
+		ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.zip', dest: 'build/tmp/real/')
 		ant.get(src: 'https://github.com/kakashidinho/metalangle/releases/download/gles3-0.0.7/MetalANGLE.framework.ios.simulator.zip', dest: 'build/tmp/')
-		ant.mkdir(dir: 'libs/ios32/sim/')
-		ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.simulator.zip', dest: 'libs/ios32/sim/')
+		ant.mkdir(dir: 'build/tmp/sim/')
+		ant.unzip(src: 'build/tmp/MetalANGLE.framework.ios.simulator.zip', dest: 'build/tmp/sim/')
+		ant.exec(executable: 'xcodebuild') {
+			arg(value: '-create-xcframework')
+			arg(value: '-framework')
+			arg(value: 'build/tmp/real/MetalANGLE.framework')
+			arg(value: '-framework')
+			arg(value: 'build/tmp/sim/MetalANGLE.framework')
+			arg(value: '-output')
+			arg(value: 'libs/ios32/MetalANGLE.xcframework')
+		}
 	}
 }
 jnigenBuildIOS.finalizedBy downloadMetalANGLE

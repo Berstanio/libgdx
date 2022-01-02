@@ -52,7 +52,7 @@
     <framework>GameController</framework>
   </frameworks>
   <frameworkPaths>
-    <path variant="device">../../gdx/libs/ios32/real/</path>
-    <path variant="simulator">../../gdx/libs/ios32/sim/</path>
+    <path variant="device">../../gdx/libs/ios32/MetalANGLE.xcframework/ios-arm64_armv7/</path>
+    <path variant="simulator">../../gdx/libs/ios32/MetalANGLE.xcframework/ios-arm64_i386_x86_64-simulator/</path>
   </frameworkPaths>
 </config>
