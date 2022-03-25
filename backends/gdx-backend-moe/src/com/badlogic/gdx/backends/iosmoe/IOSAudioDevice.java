@@ -28,7 +28,7 @@ public class IOSAudioDevice implements AudioDevice {
 
 	public IOSAudioDevice() {
 		alSource = ALSource.alloc().init();
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 5; i++) {
 			ALBuffer buffer = ALBuffer.alloc().initWithNameDataSizeFormatFrequency("test", null, 0, 0x1103, 44100);
 			alBuffersFree.add(buffer);
 		}
