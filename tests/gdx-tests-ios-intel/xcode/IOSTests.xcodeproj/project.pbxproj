@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,10 @@
 		58A543601E37902C00B2DD97 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A5435F1E37902C00B2DD97 /* AudioToolbox.framework */; };
 		58A543621E3792E400B2DD97 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58A543611E3792E400B2DD97 /* UIKit.framework */; };
 		ABE02E564B2F9CA757AF3B3A /* moe-main-interfaces.m in Sources */ = {isa = PBXBuildFile; fileRef = 6BA288C52C91054FBDE015BD /* moe-main-interfaces.m */; };
+		F0655C0F27EC9D78008F7C12 /* gdx-bullet.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0655C0B27EC9D78008F7C12 /* gdx-bullet.xcframework */; };
+		F0655C1027EC9D78008F7C12 /* ObjectAL.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0655C0C27EC9D78008F7C12 /* ObjectAL.xcframework */; };
+		F0655C1127EC9D78008F7C12 /* gdx.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0655C0D27EC9D78008F7C12 /* gdx.xcframework */; };
+		F0655C1227EC9D78008F7C12 /* gdx-box2d.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F0655C0E27EC9D78008F7C12 /* gdx-box2d.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +37,10 @@
 		58C6F5381DA66CB600309CB6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6BA288C52C91054FBDE015BD /* moe-main-interfaces.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = "moe-main-interfaces.m"; path = "../build/moe/main/ui-headers/moe-main-interfaces.m"; sourceTree = "<group>"; };
 		85BCC9DC3EC71375EC090B12 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		F0655C0B27EC9D78008F7C12 /* gdx-bullet.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = "gdx-bullet.xcframework"; path = "native/ios/gdx-bullet.xcframework"; sourceTree = "<group>"; };
+		F0655C0C27EC9D78008F7C12 /* ObjectAL.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ObjectAL.xcframework; path = native/ios/ObjectAL.xcframework; sourceTree = "<group>"; };
+		F0655C0D27EC9D78008F7C12 /* gdx.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = gdx.xcframework; path = native/ios/gdx.xcframework; sourceTree = "<group>"; };
+		F0655C0E27EC9D78008F7C12 /* gdx-box2d.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = "gdx-box2d.xcframework"; path = "native/ios/gdx-box2d.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +55,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0655C0F27EC9D78008F7C12 /* gdx-bullet.xcframework in Frameworks */,
+				F0655C1027EC9D78008F7C12 /* ObjectAL.xcframework in Frameworks */,
+				F0655C1127EC9D78008F7C12 /* gdx.xcframework in Frameworks */,
+				F0655C1227EC9D78008F7C12 /* gdx-box2d.xcframework in Frameworks */,
 				58A543601E37902C00B2DD97 /* AudioToolbox.framework in Frameworks */,
 				58A5435A1E378FFD00B2DD97 /* AVFoundation.framework in Frameworks */,
 				581773841E379D8D004E28A9 /* CoreMotion.framework in Frameworks */,
@@ -79,6 +91,10 @@
 		58A543581E378FFD00B2DD97 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F0655C0E27EC9D78008F7C12 /* gdx-box2d.xcframework */,
+				F0655C0B27EC9D78008F7C12 /* gdx-bullet.xcframework */,
+				F0655C0D27EC9D78008F7C12 /* gdx.xcframework */,
+				F0655C0C27EC9D78008F7C12 /* ObjectAL.xcframework */,
 				581773831E379D8D004E28A9 /* CoreMotion.framework */,
 				58A543611E3792E400B2DD97 /* UIKit.framework */,
 				58A5435F1E37902C00B2DD97 /* AudioToolbox.framework */,
@@ -295,7 +311,10 @@
 					"${MOE_HEADER_SEARCH_PATHS}",
 				);
 				INFOPLIST_FILE = "IOSTests-Test/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MOE_COPY_ANDROID_CACERTS = NO;
 				MOE_FRAMEWORK_PATH = "${MOE_SDK_PATH}/sdk/${PLATFORM_NAME}";
 				MOE_JAVA_VERSION_OVERRIDE = "";
@@ -334,7 +353,10 @@
 					"${MOE_HEADER_SEARCH_PATHS}",
 				);
 				INFOPLIST_FILE = "IOSTests-Test/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MOE_COPY_ANDROID_CACERTS = NO;
 				MOE_FRAMEWORK_PATH = "${MOE_SDK_PATH}/sdk/${PLATFORM_NAME}";
 				MOE_JAVA_VERSION_OVERRIDE = "";
@@ -470,7 +492,10 @@
 				);
 				INFOPLIST_FILE = IOSTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MOE_COPY_ANDROID_CACERTS = NO;
 				MOE_FRAMEWORK_PATH = "${MOE_SDK_PATH}/sdk/${PLATFORM_NAME}";
 				MOE_JAVA_VERSION_OVERRIDE = "";
@@ -513,7 +538,10 @@
 				);
 				INFOPLIST_FILE = IOSTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MOE_COPY_ANDROID_CACERTS = NO;
 				MOE_FRAMEWORK_PATH = "${MOE_SDK_PATH}/sdk/${PLATFORM_NAME}";
 				MOE_JAVA_VERSION_OVERRIDE = "";

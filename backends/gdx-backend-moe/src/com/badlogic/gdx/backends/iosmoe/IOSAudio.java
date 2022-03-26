@@ -41,7 +41,7 @@ public class IOSAudio implements Audio {
 	@Override
 	public AudioDevice newAudioDevice (int samplingRate, boolean isMono) {
 		// TODO Auto-generated method stub
-		return new IOSAudioDevice();
+		return new IOSAudioDevice(samplingRate, isMono, 9, 512);
 	}
 
 	@Override

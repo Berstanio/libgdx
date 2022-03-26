@@ -49,13 +49,14 @@ task copyNatives  {
         file("xcode/native/ios/").mkdirs();
         def LD_FLAGS = "LIBGDX_NATIVES = "
         configurations.natives.files.each { jar ->
-            for (File libFile : jar.listFiles()) {
-                if (libFile.getAbsolutePath().endsWith(".a") && !libFile.getAbsolutePath().contains("/tvos/")) {
-                    LD_FLAGS += " -force_load " + libFile.getAbsolutePath()
-                }
+            copy {
+                from jar
+                include("*.xcframework/**")
+                into("xcode/native/ios/")
             }
 
         }
+        LD_FLAGS += "-Wl,-all_load"
         def outFlags = file("xcode/IOSTests/custom.xcconfig");
         outFlags.write LD_FLAGS
 
