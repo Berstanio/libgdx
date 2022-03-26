@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
-import apple.openal.c.OpenAL;
 import com.badlogic.gdx.audio.AudioDevice;
 import com.badlogic.gdx.backends.iosmoe.objectal.ALSource;
 import com.badlogic.gdx.math.MathUtils;
@@ -153,7 +152,7 @@ public class IOSAudioDevice implements AudioDevice {
 
 				((Buffer)tempBuffer).clear();
 				((Buffer)tempBuffer.put(data, offset, written)).flip();
-				alBufferData(bufferID, format, PtrFactory.newBytePtr(tempBuffer), (data.length - offset) * 2,sampleRate);
+				alBufferData(bufferID, format, PtrFactory.newBytePtr(tempBuffer), (data.length - offset) * 2, sampleRate);
 
 				alSourceQueueBuffers(sourceID, 1, PtrFactory.newIntReference(bufferID));
 				break outer;
