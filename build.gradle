@@ -18,7 +18,8 @@ buildscript {
 
 	repositories {
 		mavenCentral()
-	gradlePluginPortal()}
+		gradlePluginPortal()
+	}
 	dependencies {
 		classpath "com.diffplug.spotless:spotless-plugin-gradle:${versions.spotless}"
 		classpath "com.badlogicgames.gdx:gdx-jnigen-gradle:2.3.1"
@@ -84,7 +85,8 @@ allprojects {
 	}
 	tasks.withType(Javadoc) {
 		options.encoding = 'UTF-8'
-	options.addBooleanOption('use', true);}
+		options.addBooleanOption('use', true);
+	}
 	tasks.withType(Test) {
 		systemProperty 'file.encoding', 'UTF-8'
 	}
@@ -96,12 +98,12 @@ allprojects {
 	}
 
 	if (JavaVersion.current().isJava9Compatible()) {
-        tasks.withType(Javadoc) {
-            options.addStringOption("-release", "8");
-        }
-    }
+		tasks.withType(Javadoc) {
+			options.addStringOption("-release", "8");
+		}
+	}
 
-    apply plugin: "com.diffplug.spotless"
+	apply plugin: "com.diffplug.spotless"
 
 	spotless {
 		lineEndings 'UNIX'
@@ -180,30 +182,30 @@ task setupExternalNativesDirs() {
 		file("extensions/gdx-lwjgl3-angle/res").mkdirs();
 
 		file("extensions/gdx-lwjgl3-glfw-awt-macos/res/macosx64").mkdirs();
-		 file("extensions/gdx-lwjgl3-glfw-awt-macos/res/macosarm64").mkdirs();
+		file("extensions/gdx-lwjgl3-glfw-awt-macos/res/macosarm64").mkdirs();
 	}
 	outputs.upToDateWhen { false }
 }
 
 task fetchAngleNativesZIP(dependsOn: setupExternalNativesDirs, type: Download) {
-    src 'https://raw.githubusercontent.com/libgdx/gdx-angle-natives/master/gdx-angle-natives.zip'
-    dest 'build/gdx-angle-natives.zip'
-    onlyIfModified true
-    useETag "all"
+	src 'https://raw.githubusercontent.com/libgdx/gdx-angle-natives/master/gdx-angle-natives.zip'
+	dest 'build/gdx-angle-natives.zip'
+	onlyIfModified true
+	useETag "all"
 }
 
 task fetchGlfwAWT(dependsOn: setupExternalNativesDirs, type: Download) {
-    src 'https://raw.githubusercontent.com/badlogic/glfw/master/libglfw.dylib'
-    dest 'extensions/gdx-lwjgl3-glfw-awt-macos/res/macosx64/libglfw.dylib'
-    onlyIfModified true
-    useETag "all"
+	src 'https://raw.githubusercontent.com/badlogic/glfw/master/libglfw.dylib'
+	dest 'extensions/gdx-lwjgl3-glfw-awt-macos/res/macosx64/libglfw.dylib'
+	onlyIfModified true
+	useETag "all"
 }
 
 task fetchGlfwAWTARM64(dependsOn: setupExternalNativesDirs, type: Download) {
-    src 'https://raw.githubusercontent.com/badlogic/glfw/master/libglfwarm64.dylib'
-    dest 'extensions/gdx-lwjgl3-glfw-awt-macos/res/macosarm64/libglfwarm64.dylib'
-    onlyIfModified true
-    useETag "all"
+	src 'https://raw.githubusercontent.com/badlogic/glfw/master/libglfwarm64.dylib'
+	dest 'extensions/gdx-lwjgl3-glfw-awt-macos/res/macosarm64/libglfwarm64.dylib'
+	onlyIfModified true
+	useETag "all"
 }
 
 task fetchExternalNatives(dependsOn: [
@@ -217,8 +219,8 @@ task fetchExternalNatives(dependsOn: [
 }
 
 task fetchGdxNativesZIP(dependsOn: fetchExternalNatives, type: Download) {
-		src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
-    dest "build/natives.zip"
+	src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
+	dest "build/natives.zip"
 	onlyIfModified true
 	useETag "all"
 }
