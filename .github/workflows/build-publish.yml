@@ -137,6 +137,8 @@ jobs:
 
       - name: submodules
         run: |
+            ls -la
+            pwd
             git submodule update --init --recursive
 
       - name: Set up JDK 11
