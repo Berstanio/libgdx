@@ -113,7 +113,25 @@ jobs:
 
   natives-linux:
     runs-on: ubuntu-20.04
+    container:
+      image: ubuntu:18.04
+
     steps:
+      - name: Install dependencies into minimal dockerfile
+        run: |
+          apt-get update && apt-get install -y \
+          git \
+          curl \
+          ca-certificates \
+          wget \
+          bzip2 \
+          zip \
+          unzip \
+          xz-utils \
+          openjdk-11-jdk-headless \
+          openjdk-8-jdk-headless \
+          maven \
+          ant sudo
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
