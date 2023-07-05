@@ -149,6 +149,8 @@ jobs:
 
       - name: Install cross-compilation toolchains
         run: |
+          ls -la extensions/gdx-freetype/jni/
+          ls -la extensions/gdx-freetype/jni/freetype/
           sudo apt update
           sudo apt install -y --force-yes gcc g++
           sudo apt install -y --force-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross
