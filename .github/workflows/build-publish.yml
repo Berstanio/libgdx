@@ -132,6 +132,8 @@ jobs:
           maven \
           ant sudo
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: submodules
         run: |
