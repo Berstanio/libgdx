@@ -129,7 +129,6 @@ jobs:
           unzip \
           xz-utils \
           openjdk-11-jdk-headless \
-          openjdk-8-jdk-headless \
           maven \
           ant sudo
       - uses: actions/checkout@v2
