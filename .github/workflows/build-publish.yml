@@ -2,9 +2,9 @@ name: Build and Publish
 
 on:
   push:
-    branches: [ master, docker-ci-build ]
+    branches: [ master, feat/docker-ci-build ]
   workflow_dispatch:
-    branches: [ master, docker-ci-build ]
+    branches: [ master, feat/docker-ci-build ]
   release:
     types: [ published ]
 
