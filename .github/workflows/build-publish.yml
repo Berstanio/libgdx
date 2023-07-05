@@ -119,6 +119,11 @@ jobs:
     steps:
       - name: Install dependencies into minimal dockerfile
         run: |
+          apt update
+          apt install -y --force-yes software-properties-common sudo
+          add-apt-repository ppa:git-core/ppa -y
+          apt update
+          apt install -y --force-yes git
           apt-get update && apt-get install -y \
           git \
           curl \
