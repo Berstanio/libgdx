@@ -135,7 +135,8 @@ jobs:
           xz-utils \
           openjdk-11-jdk-headless \
           maven \
-          ant sudo
+          ant sudo locales
+          locale-gen en_US.UTF-8
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -168,7 +169,7 @@ jobs:
 
       - name: Build Linux natives
         run: |
-          ./gradlew jniGen jnigenBuildLinux64 jnigenBuildLinuxARM jnigenBuildLinuxARM64
+          LANG=en_US.UTF-8 ./gradlew jniGen jnigenBuildLinux64 jnigenBuildLinuxARM jnigenBuildLinuxARM64
 
       - name: Pack artifacts
         run: |
