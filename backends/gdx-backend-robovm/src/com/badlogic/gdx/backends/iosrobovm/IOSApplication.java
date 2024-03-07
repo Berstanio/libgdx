@@ -21,7 +21,6 @@ import java.io.File;
 import com.badlogic.gdx.ApplicationLogger;
 import com.badlogic.gdx.backends.iosrobovm.objectal.OALIOSAudio;
 import org.robovm.apple.coregraphics.CGRect;
-import org.robovm.apple.foundation.Foundation;
 import org.robovm.apple.foundation.NSMutableDictionary;
 import org.robovm.apple.foundation.NSObject;
 import org.robovm.apple.foundation.NSProcessInfo;
@@ -84,6 +83,8 @@ public class IOSApplication implements Application {
 			app.willTerminate(application);
 		}
 	}
+
+	static final boolean IS_METALANGLE = false;
 
 	UIApplication uiApp;
 	UIWindow uiWindow;
@@ -149,7 +150,16 @@ public class IOSApplication implements Application {
 		this.input.setupPeripherals();
 
 		this.uiWindow.setRootViewController(this.graphics.viewController);
+		this.graphics.updateSafeInsets();
+
 		Gdx.app.debug("IOSApplication", "created");
+
+		listener.create();
+		listener.resize(this.graphics.getWidth(), this.graphics.getHeight());
+
+		// make sure the OpenGL view has contents before displaying it
+		this.graphics.view.display();
+
 		return true;
 	}
 
@@ -423,12 +433,7 @@ public class IOSApplication implements Application {
 
 			@Override
 			public boolean hasContents () {
-				if (Foundation.getMajorSystemVersion() >= 10) {
-					return UIPasteboard.getGeneralPasteboard().hasStrings();
-				}
-
-				String contents = getContents();
-				return contents != null && !contents.isEmpty();
+				return UIPasteboard.getGeneralPasteboard().hasStrings();
 			}
 
 			@Override

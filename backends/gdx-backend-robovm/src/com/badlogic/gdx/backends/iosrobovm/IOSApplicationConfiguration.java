@@ -47,8 +47,9 @@ public class IOSApplicationConfiguration {
 	/** the multisample format, None is default **/
 	public GLKViewDrawableMultisample multisample = GLKViewDrawableMultisample.None;
 
-	/** number of frames per second, 60 is default **/
-	public int preferredFramesPerSecond = 60;
+	/** preferred/max number of frames per second. Set to "0" to indicate max supported by screen (on standard OpenGL backend (non
+	 * MetalANGLE) Apple has a 60fps cap on most devices). **/
+	public int preferredFramesPerSecond = 0;
 
 	/** whether to use the accelerometer, default true **/
 	public boolean useAccelerometer = true;
@@ -69,10 +70,9 @@ public class IOSApplicationConfiguration {
 	/** whether or not the onScreenKeyboard should be closed on return key **/
 	public boolean keyboardCloseOnReturn = true;
 
-	/** Experimental, whether to enable OpenGL ES 3 if supported. If not supported it will fall-back to OpenGL ES 2.0. When GL ES 3
-	 * is enabled, {@link com.badlogic.gdx.Gdx#gl30} can be used to access it's functionality.
-	 * @deprecated this option is currently experimental and not yet fully supported, expect issues. */
-	@Deprecated public boolean useGL30 = false;
+	/** Whether to enable OpenGL ES 3 if supported. If not supported it will fall-back to OpenGL ES 2.0. When GL ES 3 is enabled,
+	 * {@link com.badlogic.gdx.Gdx#gl30} can be used to access it's functionality. */
+	public boolean useGL30 = false;
 
 	/** whether the status bar should be visible or not **/
 	public boolean statusBarVisible = false;

@@ -23,6 +23,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.backends.android.DefaultAndroidInput.TouchEvent;
 
+import java.util.Arrays;
+
 /** Multitouch handler for devices running Android >= 2.0. If device is capable of (fake) multitouch this will report additional
  * pointers.
  * 
@@ -61,6 +63,7 @@ public class AndroidTouchHandler {
 			case MotionEvent.ACTION_UP:
 			case MotionEvent.ACTION_POINTER_UP:
 			case MotionEvent.ACTION_OUTSIDE:
+			case MotionEvent.ACTION_CANCEL:
 				realPointerIndex = input.lookUpPointerIndex(pointerId);
 				if (realPointerIndex == -1) break;
 				if (realPointerIndex >= DefaultAndroidInput.NUM_TOUCHES) break;
@@ -68,7 +71,12 @@ public class AndroidTouchHandler {
 				x = (int)event.getX(pointerIndex);
 				y = (int)event.getY(pointerIndex);
 				button = input.button[realPointerIndex];
-				if (button != -1) postTouchEvent(input, TouchEvent.TOUCH_UP, x, y, realPointerIndex, button, timeStamp);
+				if (button != -1) {
+					if (action == MotionEvent.ACTION_CANCEL)
+						postTouchEvent(input, TouchEvent.TOUCH_CANCELLED, x, y, realPointerIndex, button, timeStamp);
+					else
+						postTouchEvent(input, TouchEvent.TOUCH_UP, x, y, realPointerIndex, button, timeStamp);
+				}
 				input.touchX[realPointerIndex] = x;
 				input.touchY[realPointerIndex] = y;
 				input.deltaX[realPointerIndex] = 0;
@@ -76,18 +84,9 @@ public class AndroidTouchHandler {
 				input.touched[realPointerIndex] = false;
 				input.button[realPointerIndex] = 0;
 				input.pressure[realPointerIndex] = 0;
-				break;
-
-			case MotionEvent.ACTION_CANCEL:
-				for (int i = 0; i < input.realId.length; i++) {
-					input.realId[i] = -1;
-					input.touchX[i] = 0;
-					input.touchY[i] = 0;
-					input.deltaX[i] = 0;
-					input.deltaY[i] = 0;
-					input.touched[i] = false;
-					input.button[i] = 0;
-					input.pressure[i] = 0;
+				if (action == MotionEvent.ACTION_CANCEL) {
+					Arrays.fill(input.realId, -1);
+					Arrays.fill(input.touched, false);
 				}
 				break;
 
