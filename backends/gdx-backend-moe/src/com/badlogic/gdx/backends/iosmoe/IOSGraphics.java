@@ -420,7 +420,7 @@ public class IOSGraphics extends AbstractGraphics {
 	@Override
 	public DisplayMode getDisplayMode () {
 		return new IOSDisplayMode(getWidth(), getHeight(), (int)(viewController.preferredFramesPerSecond()),
-				bufferFormat.r + bufferFormat.g + bufferFormat.b + bufferFormat.a);
+			bufferFormat.r + bufferFormat.g + bufferFormat.b + bufferFormat.a);
 	}
 
 	@Override

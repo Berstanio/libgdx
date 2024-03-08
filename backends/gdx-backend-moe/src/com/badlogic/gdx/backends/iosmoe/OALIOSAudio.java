@@ -69,12 +69,12 @@ public class OALIOSAudio implements IOSAudio {
 	}
 
 	@Override
-	public boolean switchOutputDevice(String deviceIdentifier) {
+	public boolean switchOutputDevice (String deviceIdentifier) {
 		return true;
 	}
 
 	@Override
-	public String[] getAvailableOutputDevices() {
+	public String[] getAvailableOutputDevices () {
 		return new String[0];
 	}
 

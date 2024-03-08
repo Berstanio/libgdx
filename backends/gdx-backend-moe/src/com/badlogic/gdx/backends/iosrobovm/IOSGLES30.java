@@ -38,10 +38,10 @@ public class IOSGLES30 extends IOSGLES20 implements GL30 {
 	public native void glDrawRangeElements (int mode, int start, int end, int count, int type, int offset);
 
 	public native void glTexImage2D (int target, int level, int xoffset, int yoffset, int width, int height, int format, int type,
-			int offset);
+		int offset);
 
 	public void glTexImage3D (int target, int level, int internalformat, int width, int height, int depth, int border, int format,
-			int type, Buffer pixels) {
+		int type, Buffer pixels) {
 		if (!shouldConvert16bit) {
 			glTexImage3DJNI(target, level, internalformat, width, height, depth, border, format, type, pixels);
 			return;
@@ -62,10 +62,10 @@ public class IOSGLES30 extends IOSGLES20 implements GL30 {
 		int format, int type, int offset);
 
 	public native void glTexSubImage2D (int target, int level, int xoffset, int yoffset, int width, int height, int format,
-			int type, int offset);
+		int type, int offset);
 
 	public void glTexSubImage3D (int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth,
-			int format, int type, Buffer pixels) {
+		int format, int type, Buffer pixels) {
 		if (!shouldConvert16bit) {
 			glTexSubImage3DJNI(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 			return;

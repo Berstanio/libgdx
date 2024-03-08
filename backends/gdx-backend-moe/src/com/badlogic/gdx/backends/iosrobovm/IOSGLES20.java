@@ -28,9 +28,8 @@ import java.nio.IntBuffer;
 
 public class IOSGLES20 implements GL20 {
 
-
 	final boolean shouldConvert16bit = IOSApplication.IS_METALANGLE
-			&& NSProcessInfo.processInfo().environment().containsKey("SIMULATOR_DEVICE_NAME");
+		&& NSProcessInfo.processInfo().environment().containsKey("SIMULATOR_DEVICE_NAME");
 
 	public IOSGLES20 () {
 		init();
@@ -306,7 +305,7 @@ public class IOSGLES20 implements GL20 {
 	}
 
 	public void glTexImage2D (int target, int level, int internalformat, int width, int height, int border, int format, int type,
-			Buffer pixels) {
+		Buffer pixels) {
 		if (!shouldConvert16bit) {
 			glTexImage2DJNI(target, level, internalformat, width, height, border, format, type, pixels);
 			return;
@@ -331,7 +330,7 @@ public class IOSGLES20 implements GL20 {
 	public native void glTexParameteriv (int target, int pname, IntBuffer params);
 
 	public void glTexSubImage2D (int target, int level, int xoffset, int yoffset, int width, int height, int format, int type,
-			Buffer pixels) {
+		Buffer pixels) {
 		if (!shouldConvert16bit) {
 			glTexSubImage2DJNI(target, level, xoffset, yoffset, width, height, format, type, pixels);
 			return;
