@@ -140,7 +140,7 @@ public class IOSHaptics {
 			long uiImpactFeedbackStyle;
 			switch (vibrationType) {
 			case LIGHT:
-				uiImpactFeedbackStyle = UIImpactFeedbackStyle.Soft;
+				uiImpactFeedbackStyle = UIImpactFeedbackStyle.Light;
 				break;
 			case MEDIUM:
 				uiImpactFeedbackStyle = UIImpactFeedbackStyle.Medium;

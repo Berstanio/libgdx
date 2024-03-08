@@ -25,7 +25,7 @@ import org.moe.natj.objc.ObjCRuntime;
 import org.moe.natj.objc.ann.ObjCClassName;
 import org.moe.natj.objc.ann.Selector;
 
-import apple.coregraphics.struct.CGRect;
+import apple.corefoundation.struct.CGRect;
 import apple.foundation.NSSet;
 import apple.glkit.GLKView;
 import apple.uikit.UIEvent;

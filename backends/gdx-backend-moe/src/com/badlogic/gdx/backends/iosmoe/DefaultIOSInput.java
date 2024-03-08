@@ -16,7 +16,7 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
-import apple.coregraphics.struct.CGSize;
+import apple.corefoundation.struct.CGSize;
 import apple.coremotion.CMAccelerometerData;
 import apple.coremotion.CMMagnetometerData;
 import apple.coremotion.CMMotionManager;
@@ -34,8 +34,8 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.Pool;
-import apple.coregraphics.struct.CGPoint;
-import apple.coregraphics.struct.CGRect;
+import apple.corefoundation.struct.CGPoint;
+import apple.corefoundation.struct.CGRect;
 import apple.gamecontroller.GCKeyboard;
 import apple.uikit.UIAlertAction;
 import apple.uikit.enums.UIAlertActionStyle;
@@ -146,10 +146,8 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	}
 
 	protected void setupPressure () {
-		if (app.getVersion() >= 9) {
-			long forceTouchCapability = UIScreen.mainScreen().traitCollection().forceTouchCapability();
-			pressureSupported = forceTouchCapability == UIForceTouchCapability.Available;
-		}
+		long forceTouchCapability = UIScreen.mainScreen().traitCollection().forceTouchCapability();
+		pressureSupported = forceTouchCapability == UIForceTouchCapability.Available;
 	}
 
 	protected void setupMagnetometer () {
@@ -673,6 +671,8 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 					if (numTouched >= 1) justTouched = true;
 					break;
 				case (int)Cancelled:
+					if (inputProcessor != null) inputProcessor.touchCancelled(event.x, event.y, event.pointer, Buttons.LEFT);
+					break;
 				case (int)Ended:
 					if (inputProcessor != null) inputProcessor.touchUp(event.x, event.y, event.pointer, Buttons.LEFT);
 					break;

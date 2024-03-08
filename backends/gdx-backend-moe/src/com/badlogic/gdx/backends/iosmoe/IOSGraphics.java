@@ -16,11 +16,13 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
-import apple.coregraphics.struct.CGPoint;
-import apple.coregraphics.struct.CGSize;
+import apple.corefoundation.struct.CGPoint;
+import apple.corefoundation.struct.CGSize;
+import apple.uikit.UIScreen;
 import com.badlogic.gdx.AbstractGraphics;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics.BufferFormat;
 import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.backends.iosrobovm.IOSGLES20;
 import com.badlogic.gdx.backends.iosrobovm.IOSGLES30;
@@ -29,11 +31,13 @@ import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Cursor.SystemCursor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GL30;
+import com.badlogic.gdx.graphics.GL31;
+import com.badlogic.gdx.graphics.GL32;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.GLVersion;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.badlogic.gdx.utils.Array;
-import apple.coregraphics.struct.CGRect;
+import apple.corefoundation.struct.CGRect;
 import apple.NSObject;
 import apple.glkit.GLKView;
 import apple.glkit.GLKViewController;
@@ -119,7 +123,14 @@ public class IOSGraphics extends AbstractGraphics {
 		viewController = app.createUIViewController(this);
 		viewController.setView(view);
 		viewController.setDelegate(viewDelegate);
-		viewController.setPreferredFramesPerSecond(config.preferredFramesPerSecond);
+
+		int preferredFps;
+		if (config.preferredFramesPerSecond == 0) {
+			preferredFps = (int)(UIScreen.mainScreen().maximumFramesPerSecond());
+		} else {
+			preferredFps = config.preferredFramesPerSecond;
+		}
+		viewController.setPreferredFramesPerSecond(preferredFps);
 
 		this.app = app;
 		this.input = input;
@@ -163,6 +174,16 @@ public class IOSGraphics extends AbstractGraphics {
 		lastFrameTime = System.nanoTime();
 		framesStart = lastFrameTime;
 
+		// enable OpenGL
+		makeCurrent();
+		// OpenGL glViewport() function expects backbuffer coordinates instead of logical coordinates
+		gl20.glViewport(0, 0, screenBounds.backBufferWidth, screenBounds.backBufferHeight);
+
+		String versionString = gl20.glGetString(GL20.GL_VERSION);
+		String vendorString = gl20.glGetString(GL20.GL_VENDOR);
+		String rendererString = gl20.glGetString(GL20.GL_RENDERER);
+		glVersion = new GLVersion(Application.ApplicationType.iOS, versionString, vendorString, rendererString);
+
 		appPaused = false;
 	}
 
@@ -193,28 +214,12 @@ public class IOSGraphics extends AbstractGraphics {
 		app.listener.pause();
 	}
 
-	boolean created = false;
-
 	public void draw (GLKView view, CGRect rect) {
 		makeCurrent();
 		// massive hack, GLKView resets the viewport on each draw call, so IOSGLES20
 		// stores the last known viewport and we reset it here...
 		gl20.glViewport(IOSGLES20.x, IOSGLES20.y, IOSGLES20.width, IOSGLES20.height);
 
-		if (!created) {
-			// OpenGL glViewport() function expects backbuffer coordinates instead of logical coordinates
-			gl20.glViewport(0, 0, screenBounds.backBufferWidth, screenBounds.backBufferHeight);
-
-			String versionString = gl20.glGetString(GL20.GL_VERSION);
-			String vendorString = gl20.glGetString(GL20.GL_VENDOR);
-			String rendererString = gl20.glGetString(GL20.GL_RENDERER);
-			glVersion = new GLVersion(Application.ApplicationType.iOS, versionString, vendorString, rendererString);
-
-			updateSafeInsets();
-			app.listener.create();
-			app.listener.resize(getWidth(), getHeight());
-			created = true;
-		}
 		if (appPaused) {
 			return;
 		}
@@ -292,6 +297,36 @@ public class IOSGraphics extends AbstractGraphics {
 			Gdx.gl20 = gl20;
 			Gdx.gl30 = gl30;
 		}
+	}
+
+	@Override
+	public boolean isGL31Available () {
+		return false;
+	}
+
+	@Override
+	public GL31 getGL31 () {
+		return null;
+	}
+
+	@Override
+	public void setGL31 (GL31 gl31) {
+
+	}
+
+	@Override
+	public boolean isGL32Available () {
+		return false;
+	}
+
+	@Override
+	public GL32 getGL32 () {
+		return null;
+	}
+
+	@Override
+	public void setGL32 (GL32 gl32) {
+
 	}
 
 	@Override
@@ -384,8 +419,8 @@ public class IOSGraphics extends AbstractGraphics {
 
 	@Override
 	public DisplayMode getDisplayMode () {
-		return new IOSDisplayMode(getWidth(), getHeight(), config.preferredFramesPerSecond,
-			bufferFormat.r + bufferFormat.g + bufferFormat.b + bufferFormat.a);
+		return new IOSDisplayMode(getWidth(), getHeight(), (int)(viewController.preferredFramesPerSecond()),
+				bufferFormat.r + bufferFormat.g + bufferFormat.b + bufferFormat.a);
 	}
 
 	@Override
@@ -419,18 +454,16 @@ public class IOSGraphics extends AbstractGraphics {
 		safeInsetRight = 0;
 		safeInsetBottom = 0;
 
-		if (Foundation.getMajorSystemVersion() >= 11) {
-			UIEdgeInsets edgeInsets = viewController.view().safeAreaInsets();
-			safeInsetTop = (int)edgeInsets.top();
-			safeInsetLeft = (int)edgeInsets.left();
-			safeInsetRight = (int)edgeInsets.right();
-			safeInsetBottom = (int)edgeInsets.bottom();
-			if (config.hdpiMode == HdpiMode.Pixels) {
-				safeInsetTop *= app.pixelsPerPoint;
-				safeInsetLeft *= app.pixelsPerPoint;
-				safeInsetRight *= app.pixelsPerPoint;
-				safeInsetBottom *= app.pixelsPerPoint;
-			}
+		UIEdgeInsets edgeInsets = viewController.view().safeAreaInsets();
+		safeInsetTop = (int)edgeInsets.top();
+		safeInsetLeft = (int)edgeInsets.left();
+		safeInsetRight = (int)edgeInsets.right();
+		safeInsetBottom = (int)edgeInsets.bottom();
+		if (config.hdpiMode == HdpiMode.Pixels) {
+			safeInsetTop *= app.pixelsPerPoint;
+			safeInsetLeft *= app.pixelsPerPoint;
+			safeInsetRight *= app.pixelsPerPoint;
+			safeInsetBottom *= app.pixelsPerPoint;
 		}
 	}
 
@@ -480,7 +513,8 @@ public class IOSGraphics extends AbstractGraphics {
 	public void setVSync (boolean vsync) {
 	}
 
-	/** Sets the preferred framerate for the application. Default is 60. Is not generally advised to be used on mobile platforms.
+	/** Overwrites the preferred framerate for the application. Use {@link IOSApplicationConfiguration#preferredFramesPerSecond}
+	 * instead to set it at application startup.
 	 *
 	 * @param fps the preferred fps */
 	@Override

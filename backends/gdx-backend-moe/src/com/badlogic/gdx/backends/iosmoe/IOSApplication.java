@@ -30,7 +30,7 @@ import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Clipboard;
-import apple.coregraphics.struct.CGRect;
+import apple.corefoundation.struct.CGRect;
 import apple.foundation.NSMutableDictionary;
 import apple.NSObject;
 import apple.foundation.NSProcessInfo;
@@ -94,6 +94,8 @@ public class IOSApplication implements Application {
 			return app.getUIWindow();
 		}
 	}
+
+	public static final boolean IS_METALANGLE = false;
 
 	UIApplication uiApp;
 	UIWindow uiWindow;
@@ -159,7 +161,12 @@ public class IOSApplication implements Application {
 		this.input.setupPeripherals();
 
 		this.uiWindow.setRootViewController(this.graphics.viewController);
+		graphics.updateSafeInsets();
 		Gdx.app.debug("IOSApplication", "created");
+		listener.create();
+		listener.resize(this.graphics.getWidth(), this.graphics.getHeight());
+		// make sure the OpenGL view has contents before displaying it
+		this.graphics.view.display();
 		return true;
 	}
 
@@ -432,12 +439,7 @@ public class IOSApplication implements Application {
 
 			@Override
 			public boolean hasContents () {
-				if (Foundation.getMajorSystemVersion() >= 10) {
-					return UIPasteboard.generalPasteboard().hasStrings();
-				}
-
-				String contents = getContents();
-				return contents != null && !contents.isEmpty();
+				return UIPasteboard.generalPasteboard().hasStrings();
 			}
 
 			@Override
