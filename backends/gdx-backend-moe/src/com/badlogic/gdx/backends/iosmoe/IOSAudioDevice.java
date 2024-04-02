@@ -4,6 +4,7 @@ package com.badlogic.gdx.backends.iosmoe;
 import com.badlogic.gdx.audio.AudioDevice;
 import com.badlogic.gdx.backends.iosmoe.objectal.ALBuffer;
 import com.badlogic.gdx.backends.iosmoe.objectal.ALSource;
+import com.badlogic.gdx.backends.iosmoe.objectal.OALAudioSession;
 import org.moe.natj.general.ptr.ShortPtr;
 import org.moe.natj.general.ptr.impl.PtrFactory;
 
@@ -27,7 +28,7 @@ public class IOSAudioDevice implements AudioDevice {
 	public IOSAudioDevice (int samplingRate, boolean isMono, int minSize, int bufferCount) {
 		this.samplingRate = samplingRate;
 		this.isMono = isMono;
-		this.format = isMono ? 0x1101 : 0x1103;
+		this.format = isMono ? 0x1101 : 0x1103; // AL_FORMAT_STEREO16 : AL_FORMAT_MONO16
 		this.minSize = minSize;
 		// This will use the native byte order. On iOS this should always be little endian.
 		// This is relevant because it might be, that iOS OpenAL only supports little endian, contrary to the OpenAL specification.
@@ -64,23 +65,45 @@ public class IOSAudioDevice implements AudioDevice {
 			return;
 		}
 
-		if (alBuffersFree.size() == 0) {
+		if (alBuffersFree.isEmpty()) {
 			while (true) {
-				int i = alSource.buffersProcessed();
-				for (int j = 0; j < i; j++) {
-					ALBuffer alBuffer = alBuffers.remove(0);
-					alSource.unqueueBuffer(alBuffer);
-					alBuffersFree.add(alBuffer);
+				// TODO: 14.11.22 Needs proper solution on ObjectAL side
+				if (OALAudioSession.sharedInstance().interrupted()) {
+					try {
+						// Should be a good enough measure
+						Thread.sleep(2);
+					} catch (InterruptedException ignored) {
+					}
+					return;
 				}
-				if (i != 0) {
+				boolean freedBuffer = false;
+				int toFree = Math.min(alSource.buffersProcessed(), alBuffers.size());
+				for (int j = 0; j < toFree; j++) {
+					ALBuffer alBuffer = alBuffers.get(0);
+					if(alSource.unqueueBuffer(alBuffer)) {
+						alBuffersFree.add(alBuffer);
+						alBuffers.remove(alBuffer);
+						freedBuffer = true;
+					} else {
+						break;
+					}
+				}
+				if (freedBuffer) {
 					break;
+				} else {
+					try {
+						// Should be a good enough measure
+						Thread.sleep(2);
+					} catch (InterruptedException ignored) {
+					}
 				}
 			}
 		}
 		ALBuffer buffer = alBuffersFree.remove(0);
 		alBufferData(buffer.bufferId(), format, voidPtr, numSamples * 2, samplingRate);
-		alSource.queueBuffer(buffer);
-		alBuffers.add(buffer);
+		if(alSource.queueBuffer(buffer)) {
+			alBuffers.add(buffer);
+		}
 		if (!alSource.playing()) {
 			alSource.play();
 		}
