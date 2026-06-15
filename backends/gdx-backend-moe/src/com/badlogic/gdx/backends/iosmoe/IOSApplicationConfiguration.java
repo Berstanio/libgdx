@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 See AUTHORS file.
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,15 +16,15 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
+import apple.uikit.enums.UIRectEdge;
 import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableColorFormat;
 import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableDepthFormat;
 import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableMultisample;
 import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableStencilFormat;
-import com.badlogic.gdx.utils.ObjectMap;
-import apple.uikit.enums.UIRectEdge;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.badlogic.gdx.graphics.glutils.HdpiUtils;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class IOSApplicationConfiguration {
 	/** whether to enable screen dimming. */
@@ -60,7 +60,7 @@ public class IOSApplicationConfiguration {
 	/** whether to use the compass, default true **/
 	public boolean useCompass = true;
 
-	/** whether to use the haptics engine, default false. * */
+	/** whether to use the haptics engine, default false. **/
 	public boolean useHaptics = false;
 
 	/** whether or not to allow background music from iPod **/
@@ -77,7 +77,7 @@ public class IOSApplicationConfiguration {
 	public boolean statusBarVisible = false;
 
 	/** whether the home indicator should auto-hide or not. Be careful that if enabled, leaving the app only takes one swipe
-	 * gesture instead of two and the indicator is never semitransparent. * */
+	 * gesture instead of two and the indicator is never semitransparent. **/
 	public boolean hideHomeIndicator = false;
 
 	/** Whether to override the ringer/mute switch, see https://github.com/libgdx/libgdx/issues/4430 */

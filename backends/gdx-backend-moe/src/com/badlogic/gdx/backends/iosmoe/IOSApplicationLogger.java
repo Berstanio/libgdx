@@ -16,43 +16,43 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
+import apple.foundation.NSString;
 import apple.foundation.c.Foundation;
 import com.badlogic.gdx.ApplicationLogger;
-import apple.foundation.NSString;
 
 /** Default implementation of {@link ApplicationLogger} for ios */
 public class IOSApplicationLogger implements ApplicationLogger {
 
 	@Override
 	public void log (String tag, String message) {
-		Foundation.NSLog("%@", NSString.stringWithString("[info] " + tag + ": " + message));
+		apple.foundation.c.Foundation.NSLog("%@", NSString.alloc().initWithString("[info] " + tag + ": " + message));
 	}
 
 	@Override
 	public void log (String tag, String message, Throwable exception) {
-		Foundation.NSLog("%@", NSString.stringWithString("[info] " + tag + ": " + message));
+		apple.foundation.c.Foundation.NSLog("%@", NSString.alloc().initWithString("[info] " + tag + ": " + message));
 		exception.printStackTrace();
 	}
 
 	@Override
 	public void error (String tag, String message) {
-		Foundation.NSLog("%@", NSString.stringWithString("[error] " + tag + ": " + message));
+		apple.foundation.c.Foundation.NSLog("%@", NSString.alloc().initWithString("[error] " + tag + ": " + message));
 	}
 
 	@Override
 	public void error (String tag, String message, Throwable exception) {
-		Foundation.NSLog("%@", NSString.stringWithString("[error] " + tag + ": " + message));
+		apple.foundation.c.Foundation.NSLog("%@", NSString.alloc().initWithString("[error] " + tag + ": " + message));
 		exception.printStackTrace();
 	}
 
 	@Override
 	public void debug (String tag, String message) {
-		Foundation.NSLog("%@", NSString.stringWithString("[debug] " + tag + ": " + message));
+		apple.foundation.c.Foundation.NSLog("%@", NSString.alloc().initWithString("[debug] " + tag + ": " + message));
 	}
 
 	@Override
 	public void debug (String tag, String message, Throwable exception) {
-		Foundation.NSLog("%@", NSString.stringWithString("[debug] " + tag + ": " + message));
+		Foundation.NSLog("%@", NSString.alloc().initWithString("[debug] " + tag + ": " + message));
 		exception.printStackTrace();
 	}
 }

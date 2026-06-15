@@ -17,6 +17,8 @@
 package com.badlogic.gdx.backends.iosmoe;
 
 import apple.foundation.NSDictionary;
+import apple.foundation.NSURL;
+import apple.uikit.UIApplication;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.net.NetJavaImpl;
 import com.badlogic.gdx.net.NetJavaServerSocketImpl;
@@ -25,8 +27,6 @@ import com.badlogic.gdx.net.ServerSocket;
 import com.badlogic.gdx.net.ServerSocketHints;
 import com.badlogic.gdx.net.Socket;
 import com.badlogic.gdx.net.SocketHints;
-import apple.foundation.NSURL;
-import apple.uikit.UIApplication;
 
 public class IOSNet implements Net {
 

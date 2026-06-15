@@ -16,7 +16,20 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
+import apple.NSObject;
+import apple.corefoundation.struct.CGRect;
 import apple.foundation.NSDictionary;
+import apple.foundation.NSMutableDictionary;
+import apple.foundation.NSProcessInfo;
+import apple.foundation.NSString;
+import apple.uikit.UIApplication;
+import apple.uikit.UIDevice;
+import apple.uikit.UIPasteboard;
+import apple.uikit.UIScreen;
+import apple.uikit.UIViewController;
+import apple.uikit.UIWindow;
+import apple.uikit.enums.UIUserInterfaceIdiom;
+import apple.uikit.protocol.UIApplicationDelegate;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.ApplicationLogger;
@@ -28,20 +41,11 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.backends.iosmoe.keyboard.IOSKeyboardHeightProvider;
+import com.badlogic.gdx.backends.iosmoe.keyboard.KeyboardHeightProvider;
+import com.badlogic.gdx.backends.iosmoe.objectal.OALIOSAudio;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Clipboard;
-import apple.corefoundation.struct.CGRect;
-import apple.foundation.NSMutableDictionary;
-import apple.NSObject;
-import apple.foundation.NSProcessInfo;
-import apple.uikit.UIApplication;
-import apple.uikit.protocol.UIApplicationDelegate;
-import apple.uikit.UIDevice;
-import apple.uikit.UIPasteboard;
-import apple.uikit.UIScreen;
-import apple.uikit.enums.UIUserInterfaceIdiom;
-import apple.uikit.UIViewController;
-import apple.uikit.UIWindow;
 import org.moe.natj.general.NatJ;
 import org.moe.natj.general.Pointer;
 import org.moe.natj.objc.ann.Selector;
@@ -52,14 +56,21 @@ public class IOSApplication implements Application {
 
 	public static abstract class Delegate extends NSObject implements UIApplicationDelegate {
 
-		private IOSApplication app;
+		static {
+			NatJ.register();
+		}
+
+		@Selector("alloc")
+		public static native Delegate alloc ();
+
+		@Selector("init")
+		public native Delegate init ();
 
 		protected Delegate (Pointer peer) {
 			super(peer);
 		}
 
-		@Selector("alloc")
-		public static native Delegate alloc ();
+		private IOSApplication app;
 
 		protected abstract IOSApplication createApplication ();
 
@@ -106,6 +117,7 @@ public class IOSApplication implements Application {
 	IOSAudio audio;
 	Files files;
 	IOSInput input;
+	KeyboardHeightProvider keyboardHeightProvider;
 	IOSNet net;
 	int logLevel = Application.LOG_DEBUG;
 	ApplicationLogger applicationLogger;
@@ -124,7 +136,7 @@ public class IOSApplication implements Application {
 		this.config = config;
 	}
 
-	final boolean didFinishLaunching (UIApplication uiApp, NSDictionary<?, ?> options) {
+	final boolean didFinishLaunching (UIApplication uiApp, NSDictionary options) {
 		setApplicationLogger(new IOSApplicationLogger());
 		Gdx.app = this;
 		this.uiApp = uiApp;
@@ -141,7 +153,6 @@ public class IOSApplication implements Application {
 
 		this.uiWindow = UIWindow.alloc().initWithFrame(UIScreen.mainScreen().bounds());
 		this.uiWindow.makeKeyAndVisible();
-		// uiApp.delegate().setWindow(uiWindow);
 
 		// setup libgdx
 		this.input = createInput();
@@ -160,8 +171,13 @@ public class IOSApplication implements Application {
 
 		this.input.setupPeripherals();
 
+		this.keyboardHeightProvider = createKeyboardHeightProvider();
+		this.keyboardHeightProvider.setKeyboardHeightObserver(input);
+		this.keyboardHeightProvider.start();
+
 		this.uiWindow.setRootViewController(this.graphics.viewController);
-		graphics.updateSafeInsets();
+		this.graphics.updateSafeInsets();
+
 		Gdx.app.debug("IOSApplication", "created");
 
 		// Trigger first render, special case that is caught and returned
@@ -169,9 +185,15 @@ public class IOSApplication implements Application {
 
 		listener.create();
 		listener.resize(this.graphics.getWidth(), this.graphics.getHeight());
+
 		// make sure the OpenGL view has contents before displaying it
 		this.graphics.view.display();
+
 		return true;
+	}
+
+	protected KeyboardHeightProvider createKeyboardHeightProvider () {
+		return IOSKeyboardHeightProvider.alloc().init();
 	}
 
 	protected Files createFiles () {
@@ -312,6 +334,10 @@ public class IOSApplication implements Application {
 		return input;
 	}
 
+	public KeyboardHeightProvider getKeyboardHeightProvider () {
+		return keyboardHeightProvider;
+	}
+
 	@Override
 	public Files getFiles () {
 		return files;
@@ -397,12 +423,12 @@ public class IOSApplication implements Application {
 		File libraryPath = new File(System.getenv("HOME"), "Library");
 		File finalPath = new File(libraryPath, name + ".plist");
 
-		NSMutableDictionary<String, Object> nsDictionary = NSMutableDictionary
+		NSMutableDictionary<NSString, NSObject> nsDictionary = NSMutableDictionary
 			.dictionaryWithContentsOfFile(finalPath.getAbsolutePath());
 
 		// if it fails to get an existing dictionary, create a new one.
 		if (nsDictionary == null) {
-			nsDictionary = (NSMutableDictionary<String, Object>)NSMutableDictionary.alloc().init();
+			nsDictionary = (NSMutableDictionary<NSString, NSObject>)NSMutableDictionary.alloc().init();
 			nsDictionary.writeToFileAtomically(finalPath.getAbsolutePath(), false);
 		}
 		return new IOSPreferences(nsDictionary, finalPath.getAbsolutePath());

@@ -1,35 +1,20 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
-import apple.corefoundation.struct.CGPoint;
-import apple.corefoundation.struct.CGRect;
-import apple.corefoundation.struct.CGSize;
-import apple.foundation.NSDictionary;
-import apple.foundation.NSNotification;
-import apple.foundation.NSNotificationCenter;
-import apple.foundation.NSNumber;
-import apple.foundation.NSValue;
-import apple.uikit.UIView;
-import apple.uikit.c.UIKit;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.backends.bindings.metalangle.MGLKViewController;
-import org.moe.natj.general.NatJ;
-import org.moe.natj.general.Pointer;
-import org.moe.natj.objc.SEL;
-import org.moe.natj.objc.ann.Selector;
-import apple.uikit.UIScreen;
-import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import apple.foundation.NSSet;
 import apple.uikit.UIDevice;
-import apple.uikit.enums.UIInterfaceOrientation;
 import apple.uikit.UIPress;
 import apple.uikit.UIPressesEvent;
+import apple.uikit.UIScreen;
+import apple.uikit.enums.UIInterfaceOrientation;
 import apple.uikit.enums.UIUserInterfaceIdiom;
+import com.badlogic.gdx.backends.bindings.metalangle.MGLKViewController;
+import com.badlogic.gdx.graphics.glutils.HdpiMode;
+import org.moe.natj.general.NatJ;
+import org.moe.natj.general.Pointer;
+import org.moe.natj.objc.ann.Selector;
 
 public class IOSUIViewController extends MGLKViewController {
-	private IOSApplication app;
-	private IOSGraphics graphics;
 
 	static {
 		NatJ.register();
@@ -45,6 +30,9 @@ public class IOSUIViewController extends MGLKViewController {
 		super(peer);
 	}
 
+	private IOSApplication app;
+	private IOSGraphics graphics;
+
 	public IOSUIViewController init (IOSApplication app, IOSGraphics graphics) {
 		init();
 		this.app = app;
@@ -58,83 +46,6 @@ public class IOSUIViewController extends MGLKViewController {
 		// start GLKViewController even though we may only draw a single frame
 		// (we may be in non-continuous mode)
 		setPaused(false);
-		injectKeyboardNotification();
-	}
-
-	protected Input.KeyboardHeightObserver observer;
-
-	@Selector("keyboardWillHide")
-	public void keyboardWillHide (NSNotification notification) {
-		if (observer != null) {
-			observer.onKeyboardHide();
-			observer.onKeyboardHeightChanged(0);
-		}
-	}
-
-	@Selector("keyboardWillShow")
-	public void keyboardWillShow (NSNotification notification) {
-		CGRect screenRect = UIScreen.mainScreen().bounds();
-		double screenHeight = screenRect.size().height();
-		double heightScale = Gdx.graphics.getHeight() / screenHeight;
-
-		NSDictionary<String, ?> userInfo = (NSDictionary<String, ?>)notification.userInfo();
-		CGRect keyboardEndFrame;
-		keyboardEndFrame = ((NSValue)userInfo.objectForKey(UIKit.UIKeyboardFrameEndUserInfoKey())).CGRectValue();
-
-		UIView textField = graphics.input.getActiveKeyboardTextField();
-		if (textField == null || !textField.isFirstResponder() || textField.isHidden()) {
-			if (observer != null) {
-				int kbHeight = (int)(keyboardEndFrame.size().height() * heightScale);
-				observer.onKeyboardShow(kbHeight);
-				observer.onKeyboardHeightChanged(kbHeight);
-			}
-			return;
-		}
-
-		double duration;
-		long curve;
-		curve = ((NSNumber)userInfo.objectForKey(UIKit.UIKeyboardAnimationCurveUserInfoKey())).longValue();
-		duration = ((NSNumber)userInfo.objectForKey(UIKit.UIKeyboardAnimationDurationUserInfoKey())).doubleValue();
-
-		UIView.beginAnimationsContext(null, null);
-		UIView.setAnimationDuration_static(duration);
-		UIView.setAnimationCurve(curve);
-
-		CGRect newFrame = textField.frame();
-		if (observer != null) {
-			int kbHeight = (int)((keyboardEndFrame.size().height() + newFrame.size().height()) * heightScale);
-			observer.onKeyboardShow(kbHeight);
-			observer.onKeyboardHeightChanged(kbHeight);
-		}
-
-		keyboardEndFrame = textField.convertRectToView(keyboardEndFrame, null);
-		newFrame.setOrigin(new CGPoint(view().safeAreaInsets().left(),
-			view().bounds().size().height() - keyboardEndFrame.size().height() - newFrame.size().height()));
-		newFrame
-			.setSize(new CGSize(view().bounds().size().width() - view().safeAreaInsets().left() - view().safeAreaInsets().right(),
-				newFrame.size().height()));
-		textField.setFrame(newFrame);
-
-		UIView.commitAnimations();
-
-		// If we want to do it with constraints
-		// ((DefaultIOSInput)((IOSApplication) Gdx.app).input).textfield.setTranslatesAutoresizingMaskIntoConstraints(false);
-		// ((DefaultIOSInput)((IOSApplication)
-		// Gdx.app).input).textfield.bottomAnchor().constraintEqualToAnchorConstant(view().bottomAnchor(),
-		// -keyboardEndFrame.size().height()).setActive(true);
-		// ((DefaultIOSInput)((IOSApplication)
-		// Gdx.app).input).textfield.leftAnchor().constraintEqualToAnchor(view().leftAnchor()).setActive(true);
-		// ((DefaultIOSInput)((IOSApplication)
-		// Gdx.app).input).textfield.rightAnchor().constraintEqualToAnchor(view().rightAnchor()).setActive(true);
-
-	}
-
-	public void injectKeyboardNotification () {
-		NSNotificationCenter.defaultCenter().addObserverSelectorNameObject(this, new SEL("keyboardWillShow"),
-			UIKit.UIKeyboardWillShowNotification(), null);
-		NSNotificationCenter.defaultCenter().addObserverSelectorNameObject(this, new SEL("keyboardWillHide"),
-			UIKit.UIKeyboardWillHideNotification(), null);
-
 	}
 
 	@Override
@@ -186,6 +97,8 @@ public class IOSUIViewController extends MGLKViewController {
 			} else {
 				app.listener.resize(newBounds.width, newBounds.height);
 			}
+
+			graphics.input.onScreenLayoutChanged();
 		}
 
 	}
@@ -202,14 +115,14 @@ public class IOSUIViewController extends MGLKViewController {
 
 	@Override
 	public void pressesBeganWithEvent (NSSet<? extends UIPress> presses, UIPressesEvent event) {
-		if (presses == null || presses.count() == 0 || !app.input.onKey(presses.objectEnumerator().nextObject().key(), true)) {
+		if (presses == null || presses.count() == 0 || !app.input.onKey(presses.allObjects().firstObject().key(), true)) {
 			super.pressesBeganWithEvent(presses, event);
 		}
 	}
 
 	@Override
 	public void pressesEndedWithEvent (NSSet<? extends UIPress> presses, UIPressesEvent event) {
-		if (presses == null || presses.count() == 0 || !app.input.onKey(presses.objectEnumerator().nextObject().key(), false)) {
+		if (presses == null || presses.count() == 0 || !app.input.onKey(presses.allObjects().firstObject().key(), false)) {
 			super.pressesEndedWithEvent(presses, event);
 		}
 	}

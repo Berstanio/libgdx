@@ -15,7 +15,7 @@
  ******************************************************************************/
 buildscript {
 	dependencies {
-		classpath group: "org.multi-os-engine", name: "moe-gradle", version: "${versions.moe}"
+		classpath "org.multi-os-engine:moe-gradle:$versions.moe"
 	}
 }
 apply plugin: "moe-sdk"

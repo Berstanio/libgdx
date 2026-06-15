@@ -14,16 +14,17 @@
  * limitations under the License.
  ******************************************************************************/
 
-package com.badlogic.gdx.backends.iosmoe;
+package com.badlogic.gdx.backends.iosmoe.objectal;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.AudioDevice;
 import com.badlogic.gdx.audio.AudioRecorder;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.backends.iosmoe.objectal.OALAudioSession;
-import com.badlogic.gdx.backends.iosmoe.objectal.OALAudioTrack;
-import com.badlogic.gdx.backends.iosmoe.objectal.OALSimpleAudio;
+import com.badlogic.gdx.backends.iosmoe.IOSApplicationConfiguration;
+import com.badlogic.gdx.backends.iosmoe.IOSAudio;
+import com.badlogic.gdx.backends.iosmoe.IOSMusic;
+import com.badlogic.gdx.backends.iosmoe.IOSSound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 
@@ -38,12 +39,12 @@ public class OALIOSAudio implements IOSAudio {
 			audio.setAllowIpod(config.allowIpod);
 			audio.setHonorSilentSwitch(!config.overrideRingerSwitch);
 		} else
-			Gdx.app.error("IOSAudio", "No OALSimpleAudio instance available, audio will not be availabe");
+			Gdx.app.error("IOSAudio", "No OALSimpleAudio instance available, audio will not be available");
 	}
 
 	@Override
 	public AudioDevice newAudioDevice (int samplingRate, boolean isMono) {
-		return new IOSAudioDevice(samplingRate, isMono, config.audioDeviceBufferSize, config.audioDeviceBufferCount);
+		return new OALIOSAudioDevice(samplingRate, isMono, config.audioDeviceBufferSize, config.audioDeviceBufferCount);
 	}
 
 	@Override
@@ -60,7 +61,7 @@ public class OALIOSAudio implements IOSAudio {
 	@Override
 	public Music newMusic (FileHandle fileHandle) {
 		String path = fileHandle.file().getPath().replace('\\', '/');
-		OALAudioTrack track = OALAudioTrack.alloc().init();
+		OALAudioTrack track = OALAudioTrack.track();
 		if (track != null) {
 			return new IOSMusic(track, path);
 		}

@@ -17,24 +17,21 @@
 package com.badlogic.gdx.backends.iosmoe;
 
 import apple.audiotoolbox.c.AudioToolbox;
-import apple.corehaptics.CHHapticEngine.Block_setResetHandler;
-import apple.corehaptics.CHHapticEngine.Block_startWithCompletionHandler;
-import apple.corehaptics.c.CoreHaptics;
-import apple.corehaptics.protocol.CHHapticPatternPlayer;
-import apple.foundation.NSDictionary;
-import apple.foundation.NSNumber;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.math.MathUtils;
 import apple.corehaptics.CHHapticEngine;
 import apple.corehaptics.CHHapticPattern;
+import apple.corehaptics.c.CoreHaptics;
+import apple.corehaptics.protocol.CHHapticPatternPlayer;
 import apple.foundation.NSArray;
+import apple.foundation.NSDictionary;
 import apple.foundation.NSError;
-import apple.foundation.NSProcessInfo;
+import apple.foundation.NSNumber;
 import apple.uikit.UIDevice;
 import apple.uikit.UIImpactFeedbackGenerator;
 import apple.uikit.enums.UIImpactFeedbackStyle;
 import apple.uikit.enums.UIUserInterfaceIdiom;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.math.MathUtils;
 import org.moe.natj.general.ptr.Ptr;
 import org.moe.natj.general.ptr.impl.PtrFactory;
 
@@ -57,25 +54,17 @@ public class IOSHaptics {
 					hapticsSupport = false;
 					return;
 				}
-
 				hapticEngine.setPlaysHapticsOnly(true);
 				hapticEngine.setAutoShutdownEnabled(true);
 				// The reset handler provides an opportunity to restart the engine.
-				hapticEngine.setResetHandler(new Block_setResetHandler() {
-					@Override
-					public void call_setResetHandler () {
-						// Try restarting the engine.
-						hapticEngine.startWithCompletionHandler(new Block_startWithCompletionHandler() {
-							@Override
-							public void call_startWithCompletionHandler (NSError error) {
-								if (error == null) return;
-								Gdx.app.error("IOSHaptics",
-									"Error restarting CHHapticEngine. Haptics will be disabled. " + error.localizedDescription());
-								hapticsSupport = false;
-
-							}
-						});
-					}
+				hapticEngine.setResetHandler( () -> {
+					// Try restarting the engine.
+					hapticEngine.startWithCompletionHandler(error -> {
+						if (error != null) {
+							Gdx.app.error("IOSHaptics", "Error restarting CHHapticEngine. Haptics will be disabled.");
+							hapticsSupport = false;
+						}
+					});
 				});
 			}
 		}
@@ -83,41 +72,57 @@ public class IOSHaptics {
 
 	public void vibrate (int milliseconds, boolean fallback) {
 		if (hapticsSupport) {
-			vibrate(milliseconds, 0.5f);
+			NSDictionary<String, ?> hapticDict = getChHapticPatternDict(milliseconds, 0.5f);
+			Ptr<NSError> error = PtrFactory.newObjectPtr(NSError.class, 1, true, false);
+			CHHapticPattern pattern = CHHapticPattern.alloc().initWithDictionaryError(hapticDict, error);
+
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error creating haptics pattern. " + error.get().localizedDescription());
+			}
+
+			CHHapticPatternPlayer player = hapticEngine.createPlayerWithPatternError(pattern, error);
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error creating haptics player. " + error.get().localizedDescription());
+			}
+
+			player.startAtTimeError(0, error);
+
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error starting haptics player. Error code: " + error.get().localizedDescription());
+			}
 		} else if (fallback) {
 			AudioToolbox.AudioServicesPlaySystemSound(4095);
-		}
-	}
-
-	public void vibrate (int milliseconds, float intensity) {
-		NSDictionary<String, ?> hapticDict = getChHapticPatternDict(milliseconds, intensity);
-		Ptr<NSError> nsErrorPtr = PtrFactory.newObjectPtr(NSError.class, 1, true, false);
-		CHHapticPattern pattern = CHHapticPattern.alloc().initWithDictionaryError(hapticDict, nsErrorPtr);
-		if (nsErrorPtr.get() != null) {
-			Gdx.app.error("IOSHaptics", "Error creating haptics pattern. " + nsErrorPtr.get().localizedDescription());
-			return;
-		}
-		CHHapticPatternPlayer patternPlayer = hapticEngine.createPlayerWithPatternError(pattern, null);
-		if (nsErrorPtr.get() != null) {
-			Gdx.app.error("IOSHaptics", "Error creating haptics player. " + nsErrorPtr.get().localizedDescription());
-			return;
-		}
-		patternPlayer.startAtTimeError(0, nsErrorPtr);
-		if (nsErrorPtr.get() != null) {
-			Gdx.app.error("IOSHaptics", "Error starting haptics player. " + nsErrorPtr.get().localizedDescription());
-			return;
 		}
 	}
 
 	public void vibrate (int milliseconds, int amplitude, boolean fallback) {
 		if (hapticsSupport) {
 			float intensity = MathUtils.clamp(amplitude / 255f, 0, 1);
-			vibrate(milliseconds, intensity);
+			NSDictionary<String, ?> hapticDict = getChHapticPatternDict(milliseconds, intensity);
+
+			Ptr<NSError> error = PtrFactory.newObjectPtr(NSError.class, 1, true, false);
+			CHHapticPattern pattern = CHHapticPattern.alloc().initWithDictionaryError(hapticDict, error);
+
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error creating haptics pattern. " + error.get().localizedDescription());
+			}
+
+			CHHapticPatternPlayer player = hapticEngine.createPlayerWithPatternError(pattern, error);
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error creating haptics player. " + error.get().localizedDescription());
+			}
+
+			player.startAtTimeError(0, error);
+
+			if (error.get() != null) {
+				Gdx.app.error("IOSHaptics", "Error starting haptics player. Error code: " + error.get().localizedDescription());
+			}
 		} else {
 			vibrate(milliseconds, fallback);
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private NSDictionary<String, ?> getChHapticPatternDict (int milliseconds, float intensity) {
 		return (NSDictionary<String, ?>)NSDictionary
 			.dictionaryWithObjectForKey(NSArray.arrayWithObject(NSDictionary.dictionaryWithObjectForKey(

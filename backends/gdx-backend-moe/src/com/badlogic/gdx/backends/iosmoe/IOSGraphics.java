@@ -16,28 +16,29 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
+import apple.NSObject;
 import apple.corefoundation.struct.CGPoint;
+import apple.corefoundation.struct.CGRect;
 import apple.corefoundation.struct.CGSize;
 import apple.uikit.UIScreen;
 import apple.uikit.struct.UIEdgeInsets;
 import com.badlogic.gdx.AbstractGraphics;
+import com.badlogic.gdx.Application;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.backends.bindings.metalangle.MGLContext;
 import com.badlogic.gdx.backends.bindings.metalangle.MGLKView;
 import com.badlogic.gdx.backends.bindings.metalangle.MGLKViewController;
-import com.badlogic.gdx.backends.bindings.metalangle.enums.*;
+import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableColorFormat;
+import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableDepthFormat;
+import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableMultisample;
+import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLDrawableStencilFormat;
+import com.badlogic.gdx.backends.bindings.metalangle.enums.MGLRenderingAPI;
 import com.badlogic.gdx.backends.bindings.metalangle.protocol.MGLKViewControllerDelegate;
 import com.badlogic.gdx.backends.bindings.metalangle.protocol.MGLKViewDelegate;
-import org.moe.natj.general.Pointer;
-import org.moe.natj.general.ann.ByValue;
-import org.moe.natj.objc.ann.Selector;
-
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.BufferFormat;
-import com.badlogic.gdx.LifecycleListener;
+import com.badlogic.gdx.backends.iosmoe.custom.HWMachine;
 import com.badlogic.gdx.backends.iosrobovm.IOSGLES20;
 import com.badlogic.gdx.backends.iosrobovm.IOSGLES30;
-import com.badlogic.gdx.backends.iosmoe.custom.HWMachine;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Cursor.SystemCursor;
 import com.badlogic.gdx.graphics.GL20;
@@ -48,9 +49,9 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.glutils.GLVersion;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.badlogic.gdx.utils.Array;
-import apple.corefoundation.struct.CGRect;
-import apple.NSObject;
-import apple.corefoundation.struct.CGRect;
+import org.moe.natj.general.NatJ;
+import org.moe.natj.general.Pointer;
+import org.moe.natj.objc.ann.Selector;
 
 public class IOSGraphics extends AbstractGraphics {
 
@@ -109,11 +110,8 @@ public class IOSGraphics extends AbstractGraphics {
 			gl30 = null;
 		}
 
-		IOSViewDelegate viewDelegate = IOSViewDelegate.alloc().init();
-		// TODO: 13.06.2022 Solve better
-		viewDelegate.setIosGraphics(this);
+		IOSViewDelegate viewDelegate = IOSViewDelegate.alloc().initWithGraphics(this);
 		view = IOSGLKView.alloc().init(new CGRect(new CGPoint(0, 0), new CGSize(screenBounds.width, screenBounds.height)), context);
-		view.setGraphics(this);
 		view.setDelegate(viewDelegate);
 		view.setDrawableColorFormat(config.colorFormat);
 		view.setDrawableDepthFormat(config.depthFormat);
@@ -216,7 +214,7 @@ public class IOSGraphics extends AbstractGraphics {
 		app.listener.pause();
 	}
 
-	public void draw (MGLKView view, @ByValue CGRect rect) {
+	public void draw (MGLKView view, CGRect rect) {
 		makeCurrent();
 		// massive hack, GLKView resets the viewport on each draw call, so IOSGLES20
 		// stores the last known viewport and we reset it here...
@@ -259,7 +257,7 @@ public class IOSGraphics extends AbstractGraphics {
 		MGLContext.setCurrentContext(context);
 	}
 
-	public void update (MGLKViewController glkViewController) {
+	public void update (MGLKViewController controller) {
 		makeCurrent();
 		app.processRunnables();
 		// pause the GLKViewController render loop if we are no longer continuous
@@ -586,11 +584,10 @@ public class IOSGraphics extends AbstractGraphics {
 	}
 
 	private static class IOSViewDelegate extends NSObject implements MGLKViewDelegate, MGLKViewControllerDelegate {
-		protected IOSViewDelegate (Pointer peer) {
-			super(peer);
-		}
 
-		private IOSGraphics iosGraphics;
+		static {
+			NatJ.register();
+		}
 
 		@Selector("alloc")
 		public static native IOSViewDelegate alloc ();
@@ -598,8 +595,16 @@ public class IOSGraphics extends AbstractGraphics {
 		@Selector("init")
 		public native IOSViewDelegate init ();
 
-		public void setIosGraphics (IOSGraphics iosGraphics) {
-			this.iosGraphics = iosGraphics;
+		protected IOSViewDelegate (Pointer peer) {
+			super(peer);
+		}
+
+		private IOSGraphics iosGraphics;
+
+		public IOSViewDelegate initWithGraphics (IOSGraphics graphics) {
+			init();
+			this.iosGraphics = graphics;
+			return this;
 		}
 
 		@Override

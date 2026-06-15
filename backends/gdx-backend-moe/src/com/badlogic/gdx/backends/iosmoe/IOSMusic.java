@@ -21,6 +21,7 @@ import apple.avfaudio.protocol.AVAudioPlayerDelegate;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.backends.iosmoe.objectal.OALAudioTrack;
+import org.jetbrains.annotations.NotNull;
 
 /** @author Niklas Therning */
 public class IOSMusic implements Music {
@@ -34,16 +35,12 @@ public class IOSMusic implements Music {
 		this.track = track;
 		this.filePath = filePath;
 		this.track.setDelegate(new AVAudioPlayerDelegate() {
+
 			@Override
-			public void audioPlayerDidFinishPlayingSuccessfully (AVAudioPlayer player, boolean success) {
+			public void audioPlayerDidFinishPlayingSuccessfully (@NotNull AVAudioPlayer player, boolean success) {
 				final OnCompletionListener listener = onCompletionListener;
 				if (listener != null) {
-					Gdx.app.postRunnable(new Runnable() {
-						@Override
-						public void run () {
-							listener.onCompletion(IOSMusic.this);
-						}
-					});
+					Gdx.app.postRunnable( () -> listener.onCompletion(IOSMusic.this));
 				}
 			}
 		});

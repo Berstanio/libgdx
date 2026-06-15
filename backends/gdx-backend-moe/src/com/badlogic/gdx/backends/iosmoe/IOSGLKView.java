@@ -16,6 +16,10 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
+import apple.corefoundation.struct.CGRect;
+import apple.foundation.NSSet;
+import apple.uikit.UIEvent;
+import apple.uikit.UITouch;
 import com.badlogic.gdx.backends.bindings.metalangle.MGLContext;
 import com.badlogic.gdx.backends.bindings.metalangle.MGLKView;
 import org.moe.natj.general.NatJ;
@@ -25,11 +29,6 @@ import org.moe.natj.general.ann.RegisterOnStartup;
 import org.moe.natj.objc.ObjCRuntime;
 import org.moe.natj.objc.ann.ObjCClassName;
 import org.moe.natj.objc.ann.Selector;
-
-import apple.corefoundation.struct.CGRect;
-import apple.foundation.NSSet;
-import apple.uikit.UIEvent;
-import apple.uikit.UITouch;
 
 @org.moe.natj.general.ann.Runtime(ObjCRuntime.class)
 @ObjCClassName("IOSGLKView")

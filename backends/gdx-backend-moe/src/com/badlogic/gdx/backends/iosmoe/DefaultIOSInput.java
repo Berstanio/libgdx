@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 See AUTHORS file.
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *   http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,47 +16,46 @@
 
 package com.badlogic.gdx.backends.iosmoe;
 
-import apple.NSObject;
+import apple.corefoundation.struct.CGPoint;
+import apple.corefoundation.struct.CGRect;
 import apple.corefoundation.struct.CGSize;
-import apple.coremotion.CMAccelerometerData;
-import apple.coremotion.CMMagnetometerData;
-import apple.coremotion.CMMotionManager;
-import apple.foundation.*;
+import apple.foundation.NSArray;
+import apple.foundation.NSSet;
 import apple.foundation.struct.NSRange;
-import apple.uikit.*;
-import apple.uikit.UIAlertAction.Block_actionWithTitleStyleHandler;
-import apple.uikit.UIAlertController.Block_addTextFieldWithConfigurationHandler;
-import apple.uikit.c.UIKit;
-import apple.uikit.enums.*;
-import apple.uikit.protocol.*;
-import apple.uikit.struct.UIEdgeInsets;
+import apple.gamecontroller.GCKeyboard;
+import apple.uikit.UIAcceleration;
+import apple.uikit.UIAccelerometer;
+import apple.uikit.UIAlertAction;
+import apple.uikit.UIAlertController;
+import apple.uikit.UIKey;
+import apple.uikit.UIScreen;
+import apple.uikit.UITextField;
+import apple.uikit.UITouch;
+import apple.uikit.UIView;
+import apple.uikit.enums.UIAlertActionStyle;
+import apple.uikit.enums.UIAlertControllerStyle;
+import apple.uikit.enums.UIForceTouchCapability;
+import apple.uikit.enums.UIInterfaceOrientation;
+import apple.uikit.enums.UIKeyboardHIDUsage;
+import apple.uikit.enums.UIKeyboardType;
+import apple.uikit.enums.UIReturnKeyType;
+import apple.uikit.enums.UITextAutocapitalizationType;
+import apple.uikit.enums.UITextAutocorrectionType;
+import apple.uikit.enums.UITextSpellCheckingType;
+import apple.uikit.enums.UITouchPhase;
+import apple.uikit.protocol.UIAccelerometerDelegate;
+import apple.uikit.protocol.UITextFieldDelegate;
 import com.badlogic.gdx.AbstractInput;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.badlogic.gdx.input.NativeInputConfiguration;
 import com.badlogic.gdx.input.NativeInputConfiguration.NativeInputCloseCallback;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.Null;
-
 import com.badlogic.gdx.utils.Pool;
-import apple.corefoundation.struct.CGPoint;
-import apple.corefoundation.struct.CGRect;
-import apple.gamecontroller.GCKeyboard;
-import org.moe.natj.general.Pointer;
-import org.moe.natj.general.ptr.impl.PtrFactory;
-import org.moe.natj.objc.ObjCRuntime;
-import org.moe.natj.objc.SEL;
-import org.moe.natj.objc.ann.Selector;
-
-import java.util.Objects;
-
-import static apple.uikit.enums.UITouchPhase.*;
-import static apple.uikit.enums.UIDeviceOrientation.*;
-import static apple.uikit.enums.UIKeyboardHIDUsage.*;
+import org.jetbrains.annotations.NotNull;
 
 public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	static final int MAX_TOUCHES = 20;
@@ -95,12 +94,71 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 
 	private IOSHaptics haptics;
 	// CMMotionManager motionManager;
-	protected CMMotionManager motionManager;
+	protected UIAccelerometerDelegate accelerometerDelegate;
 	boolean compassSupported;
 	boolean keyboardCloseOnReturn;
-	boolean softkeyboardActive = false;
 
 	private boolean hadHardwareKeyEvent = false;
+
+	/** The active {@link #openTextInputField(NativeInputConfiguration)} session, or null. */
+	IOSNativeInput nativeInput;
+
+	// hack for software keyboard support
+	// uses a hidden textfield to capture input
+	// see: https://web.archive.org/web/20171016192705/http://www.badlogicgames.com/forum/viewtopic.php?f=17&t=11788
+	private UITextField invisibleTextField = null;
+
+	protected KeyboardHeightObserver observer;
+	/** Whether a docked keyboard frame is on screen per the keyboard notifications. Gates the resize re-pin and the open/close
+	 * fallback dispatches for the flows where no keyboard notification will fire. */
+	private boolean keyboardOpen;
+
+	private int cachedHeight;
+	private boolean cachedVisible;
+
+	private final UITextFieldDelegate textDelegateInvisible = new UITextFieldDelegate() {
+
+		@Override
+		public boolean textFieldShouldChangeCharactersInRangeReplacementString (UITextField textField, NSRange range,
+			String string) {
+			for (int i = 0; i < range.length(); i++) {
+				inputProcessor.keyTyped((char)8);
+			}
+
+			if (string.isEmpty()) {
+				if (range.length() > 0) Gdx.graphics.requestRendering();
+				return false;
+			}
+
+			char[] chars = new char[string.length()];
+			string.getChars(0, string.length(), chars, 0);
+
+			for (int i = 0; i < chars.length; i++) {
+				inputProcessor.keyTyped(chars[i]);
+			}
+			Gdx.graphics.requestRendering();
+
+			return true;
+		}
+
+		@Override
+		public boolean textFieldShouldEndEditing (UITextField textField) {
+			// Text field needs to have at least one symbol - so we can use backspace
+			textField.setText("x");
+			Gdx.graphics.requestRendering();
+
+			return true;
+		}
+
+		@Override
+		public boolean textFieldShouldReturn (UITextField textField) {
+			if (keyboardCloseOnReturn) setOnscreenKeyboardVisible(false);
+			inputProcessor.keyDown(Keys.ENTER);
+			inputProcessor.keyTyped((char)13);
+			Gdx.graphics.requestRendering();
+			return false;
+		}
+	};
 
 	public DefaultIOSInput (IOSApplication app) {
 		this.app = app;
@@ -108,9 +166,13 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 		this.keyboardCloseOnReturn = app.config.keyboardCloseOnReturn;
 	}
 
+	protected IOSNativeInput createNativeInput (NativeInputConfiguration configuration) {
+		return IOSNativeInput.alloc().init(app, configuration);
+	}
+
 	@Override
 	public void setupPeripherals () {
-		motionManager = CMMotionManager.alloc().init();
+		// motionManager = new CMMotionManager();
 		setupAccelerometer();
 		setupCompass();
 		setupHaptics();
@@ -119,25 +181,27 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 
 	protected void setupCompass () {
 		if (config.useCompass) {
-			setupMagnetometer();
+			// setupMagnetometer();
 		}
 	}
 
 	protected void setupAccelerometer () {
 		if (config.useAccelerometer) {
-			motionManager.setAccelerometerUpdateInterval(config.accelerometerUpdate);
-			CMMotionManager.Block_startAccelerometerUpdatesToQueueWithHandler handler = new CMMotionManager.Block_startAccelerometerUpdatesToQueueWithHandler() {
+			accelerometerDelegate = new UIAccelerometerDelegate() {
+
 				@Override
-				public void call_startAccelerometerUpdatesToQueueWithHandler (CMAccelerometerData data, NSError nsError) {
-					float x = (float)data.acceleration().x() * 10f;
-					float y = (float)data.acceleration().y() * 10f;
-					float z = (float)data.acceleration().z() * 10f;
+				public void accelerometerDidAccelerate (@NotNull UIAccelerometer accelerometer, @NotNull UIAcceleration values) {
+					float x = (float)values.x() * 10;
+					float y = (float)values.y() * 10;
+					float z = (float)values.z() * 10;
 					acceleration[0] = -x;
 					acceleration[1] = -y;
 					acceleration[2] = -z;
 				}
+
 			};
-			motionManager.startAccelerometerUpdatesToQueueWithHandler(NSOperationQueue.alloc().init(), handler);
+			UIAccelerometer.sharedAccelerometer().setDelegate(accelerometerDelegate);
+			UIAccelerometer.sharedAccelerometer().setUpdateInterval(config.accelerometerUpdate);
 		}
 	}
 
@@ -150,63 +214,81 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 		pressureSupported = forceTouchCapability == UIForceTouchCapability.Available;
 	}
 
-	protected void setupMagnetometer () {
-		if (motionManager.isMagnetometerAvailable() && config.useCompass)
-			compassSupported = true;
-		else
-			return;
-		motionManager.setMagnetometerUpdateInterval(config.magnetometerUpdate);
+	// need to retain a reference so GC doesn't get right of the
+	// object passed to the native thread
+// VoidBlock2<CMAccelerometerData, NSError> accelVoid = null;
+// private void setupAccelerometer () {
+// if (config.useAccelerometer) {
+// motionManager.setAccelerometerUpdateInterval(config.accelerometerUpdate);
+// accelVoid = new VoidBlock2<CMAccelerometerData, NSError>() {
+// @Override
+// public void invoke(CMAccelerometerData accelData, NSError error) {
+// updateAccelerometer(accelData);
+// }
+// };
+// motionManager.startAccelerometerUpdates(new NSOperationQueue(), accelVoid);
+// }
+// }
 
-		CMMotionManager.Block_startMagnetometerUpdatesToQueueWithHandler handler = new CMMotionManager.Block_startMagnetometerUpdatesToQueueWithHandler() {
-			@Override
-			public void call_startMagnetometerUpdatesToQueueWithHandler (CMMagnetometerData cmMagnetometerData, NSError nsError) {
-				updateRotation(cmMagnetometerData);
-			}
-		};
+	// need to retain a reference so GC doesn't get right of the
+	// object passed to the native thread
+// VoidBlock2<CMMagnetometerData, NSError> magnetVoid = null;
+// private void setupMagnetometer () {
+// if (motionManager.isMagnetometerAvailable() && config.useCompass) compassSupported = true;
+// else return;
+// motionManager.setMagnetometerUpdateInterval(config.magnetometerUpdate);
+// magnetVoid = new VoidBlock2<CMMagnetometerData, NSError>() {
+// @Override
+// public void invoke(CMMagnetometerData magnetData, NSError error) {
+// updateRotation(magnetData);
+// }
+// };
+// motionManager.startMagnetometerUpdates(new NSOperationQueue(), magnetVoid);
+// }
 
-		motionManager.startMagnetometerUpdatesToQueueWithHandler(NSOperationQueue.alloc().init(), handler);
-	}
-
-	private void updateRotation (CMMagnetometerData data) {
-		final float eX = (float)data.magneticField().x();
-		final float eY = (float)data.magneticField().y();
-		final float eZ = (float)data.magneticField().z();
-
-		float gX = acceleration[0];
-		float gY = acceleration[1];
-		float gZ = acceleration[2];
-
-		float cX = eY * gZ - eZ * gY;
-		float cY = eZ * gX - eX * gZ;
-		float cZ = eX * gY - eY * gX;
-
-		final float normal = (float)Math.sqrt(cX * cX + cY * cY + cZ * cZ);
-		final float invertC = 1.0f / normal;
-		cX *= invertC;
-		cY *= invertC;
-		cZ *= invertC;
-		final float invertG = 1.0f / (float)Math.sqrt(gX * gX + gY * gY + gZ * gZ);
-		gX *= invertG;
-		gY *= invertG;
-		gZ *= invertG;
-		final float mX = gY * cZ - gZ * cY;
-		final float mY = gZ * cX - gX * cZ;
-		final float mZ = gX * cY - gY * cX;
-
-		R[0] = cX;
-		R[1] = cY;
-		R[2] = cZ;
-		R[3] = mX;
-		R[4] = mY;
-		R[5] = mZ;
-		R[6] = gX;
-		R[7] = gY;
-		R[8] = gZ;
-
-		rotation[0] = (float)Math.atan2(R[1], R[4]) * MathUtils.radDeg;
-		rotation[1] = (float)Math.asin(-R[7]) * MathUtils.radDeg;
-		rotation[2] = (float)Math.atan2(-R[6], R[8]) * MathUtils.radDeg;
-	}
+// private void updateAccelerometer (CMAccelerometerData data) {
+// float x = (float) data.getAcceleration().x() * 10f;
+// float y = (float) data.getAcceleration().y() * 10f;
+// float z = (float) data.getAcceleration().z() * 10f;
+// acceleration[0] = -x;
+// acceleration[1] = -y;
+// acceleration[2] = -z;
+// }
+//
+// private void updateRotation (CMMagnetometerData data) {
+// final float eX = (float) data.getMagneticField().x();
+// final float eY = (float) data.getMagneticField().y();
+// final float eZ = (float) data.getMagneticField().z();
+//
+// float gX = acceleration[0];
+// float gY = acceleration[1];
+// float gZ = acceleration[2];
+//
+// float cX = eY * gZ - eZ * gY;
+// float cY = eZ * gX - eX * gZ;
+// float cZ = eX * gY - eY * gX;
+//
+// final float normal = (float) Math.sqrt(cX * cX + cY * cY + cZ * cZ);
+// final float invertC = 1.0f / normal;
+// cX *= invertC;
+// cY *= invertC;
+// cZ *= invertC;
+// final float invertG = 1.0f / (float) Math.sqrt(gX * gX + gY * gY + gZ * gZ);
+// gX *= invertG;
+// gY *= invertG;
+// gZ *= invertG;
+// final float mX = gY * cZ - gZ * cY;
+// final float mY = gZ * cX - gX * cZ;
+// final float mZ = gX * cY - gY * cX;
+//
+// R[0] = cX; R[1] = cY; R[2] = cZ;
+// R[3] = mX; R[4] = mY; R[5] = mZ;
+// R[6] = gX; R[7] = gY; R[8] = gZ;
+//
+// rotation[0] = (float) Math.atan2(R[1], R[4]) * MathUtils.radDeg;
+// rotation[1] = (float) Math.asin(-R[7]) * MathUtils.radDeg;
+// rotation[2] = (float) Math.atan2(-R[6], R[8]) * MathUtils.radDeg;
+// }
 
 	@Override
 	public float getAccelerometerX () {
@@ -343,117 +425,6 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 		app.getUIViewController().presentViewControllerAnimatedCompletion(uiAlertController, true, null);
 	}
 
-	// hack for software keyboard support
-	// uses a hidden textfield to capture input
-	// see: https://web.archive.org/web/20171016192705/http://www.badlogicgames.com/forum/viewtopic.php?f=17&t=11788
-
-	private UIView textfield = null;
-
-	private NativeInputConfiguration nativeInputConfiguration;
-
-	private final UITextViewDelegate textViewDelegate = new UITextViewDelegate() {
-		@Override
-		public void textViewDidChange (UITextView textView) {
-			if (textView.text().isEmpty()) {
-				textView.setText(nativeInputConfiguration.getPlaceholder());
-				textView.setTextColor(UIColor.lightGrayColor());
-				textView.setSelectedTextRange(
-					textView.textRangeFromPositionToPosition(textView.beginningOfDocument(), textView.beginningOfDocument()));
-			}
-		}
-
-		@Override
-		public boolean textViewShouldChangeTextInRangeReplacementText (UITextView textView, NSRange range, String text) {
-			if (textView.textColor() != null && textView.textColor().isEqual(UIColor.lightGrayColor())) {
-				if (!text.isEmpty()) {
-					textView.setText("");
-					textView.setTextColor(UIColor.blackColor());
-				} else {
-					return false;
-				}
-			}
-			if (nativeInputConfiguration.getMaxLength() != -1
-				&& textView.text().length() + (text.length() - range.length()) > nativeInputConfiguration.getMaxLength()) {
-				return false;
-			}
-
-			if (nativeInputConfiguration.getValidator() == null) return true;
-			return nativeInputConfiguration.getValidator().validate(text);
-		}
-	};
-
-	private final UITextFieldDelegate textDelegate = new UITextFieldDelegate() {
-
-		@Override
-		public boolean textFieldShouldChangeCharactersInRangeReplacementString (UITextField textField, NSRange range, String text) {
-			Objects.requireNonNull(textField, "Textfield should be NonNull");
-			Objects.requireNonNull(range, "NSRange should be NonNull");
-			if (text == null) text = "";
-			Objects.requireNonNull(text, "Text should be NonNull");
-
-			String currentText = textField.text();
-			int currentLength = currentText == null ? 0 : currentText.length();
-			int cachedMaxTextLength = nativeInputConfiguration.getMaxLength();
-			if (cachedMaxTextLength != -1 && currentLength + (text.length() - range.length()) > cachedMaxTextLength) {
-				return false;
-			}
-			Input.InputStringValidator cachedInputStringValidator = nativeInputConfiguration.getValidator();
-			if (cachedInputStringValidator == null) return true;
-			return cachedInputStringValidator.validate(text);
-		}
-
-		@Override
-		public boolean textFieldShouldReturn (UITextField textField) {
-			if (keyboardCloseOnReturn) Gdx.input.closeTextInputField(true);
-			Gdx.graphics.requestRendering();
-			return false;
-		}
-	};
-
-	private final UITextFieldDelegate textDelegateInvisible = new UITextFieldDelegate() {
-
-		@Override
-		public boolean textFieldShouldChangeCharactersInRangeReplacementString (UITextField textField, NSRange range,
-			String string) {
-			for (int i = 0; i < range.length(); i++) {
-				inputProcessor.keyTyped((char)8);
-			}
-
-			if (string.isEmpty()) {
-				if (range.length() > 0) Gdx.graphics.requestRendering();
-				return false;
-			}
-
-			char[] chars = new char[string.length()];
-			string.getChars(0, string.length(), chars, 0);
-
-			for (int i = 0; i < chars.length; i++) {
-				inputProcessor.keyTyped(chars[i]);
-			}
-			Gdx.graphics.requestRendering();
-
-			return true;
-		}
-
-		@Override
-		public boolean textFieldShouldEndEditing (UITextField textField) {
-			// Text field needs to have at least one symbol - so we can use backspace
-			textField.setText("x");
-			Gdx.graphics.requestRendering();
-
-			return true;
-		}
-
-		@Override
-		public boolean textFieldShouldReturn (UITextField textField) {
-			if (keyboardCloseOnReturn) setOnscreenKeyboardVisible(false);
-			inputProcessor.keyDown(Keys.ENTER);
-			inputProcessor.keyTyped((char)13);
-			Gdx.graphics.requestRendering();
-			return false;
-		}
-	};
-
 	@Override
 	public void setOnscreenKeyboardVisible (boolean visible) {
 		setOnscreenKeyboardVisible(visible, OnscreenKeyboardType.Default);
@@ -461,225 +432,77 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 
 	@Override
 	public void setOnscreenKeyboardVisible (boolean visible, OnscreenKeyboardType type) {
-		if (textfield != null && !textfield.isHidden())
-			throw new RuntimeException("Can't open KeyBoard, if TextInputField KeyBoard is already open");
-		// Maybe supporting needsDoneToolbar also here?
-		if (textfield == null) createDefaultTextField(false, false);
-		softkeyboardActive = visible;
+		if (nativeInput != null) throw new GdxRuntimeException("Can't open KeyBoard, if TextInputField KeyBoard is already open");
+		if (invisibleTextField == null) createInvisibleTextField();
 		if (visible) {
-			UITextField uiTextField = (UITextField)textfield;
 			if (type == null) type = OnscreenKeyboardType.Default;
-			uiTextField.setKeyboardType(getIosInputType(type));
-			uiTextField.setAutocorrectionType(UITextAutocorrectionType.No);
-			uiTextField.setSpellCheckingType(UITextSpellCheckingType.No);
-			textfield.reloadInputViews();
-			textfield.becomeFirstResponder();
-			uiTextField.setDelegate(textDelegateInvisible);
-			uiTextField.setText("x");
+			invisibleTextField.setKeyboardType(getIosInputType(type));
+			invisibleTextField.setAutocorrectionType(UITextAutocorrectionType.No);
+			invisibleTextField.setSpellCheckingType(UITextSpellCheckingType.No);
+			invisibleTextField.reloadInputViews();
+			invisibleTextField.becomeFirstResponder();
+			invisibleTextField.setDelegate(textDelegateInvisible);
+			invisibleTextField.setText("x");
 		} else {
-			textfield.resignFirstResponder();
-			textfield.removeFromSuperview();
-			ObjCRuntime.disposeObject(textfield);
-			textfield = null;
+			invisibleTextField.resignFirstResponder();
+			invisibleTextField.removeFromSuperview();
+			invisibleTextField = null;
 		}
-
 	}
 
-	private UITableView suggestionTable;
+	private void createInvisibleTextField () {
+		CGRect rect = new CGRect();
+		rect.setOrigin(new CGPoint(app.graphics.screenBounds.width, app.graphics.screenBounds.height));
+		rect.setSize(new CGSize(app.graphics.screenBounds.width, 50));
+		UITextField uiTextField = UITextField.alloc().initWithFrame(rect);
+		uiTextField.setReturnKeyType(UIReturnKeyType.Done);
+		uiTextField.setAutocapitalizationType(UITextAutocapitalizationType.None);
+		uiTextField.setHidden(true);
+		app.getUIViewController().view().addSubview(uiTextField);
+		invisibleTextField = uiTextField;
+	}
 
 	@Override
-	public void openTextInputField (final NativeInputConfiguration configuration) {
-		if (textfield != null) throw new GdxRuntimeException("Can't open TextInputField, if KeyBoard is already open");
+	public void openTextInputField (NativeInputConfiguration configuration) {
+		if (nativeInput != null) throw new GdxRuntimeException("Can't open TextInputField, if KeyBoard is already open");
+		if (invisibleTextField != null) throw new GdxRuntimeException("Can't open TextInputField, if KeyBoard is already open");
 		configuration.validate();
-		this.nativeInputConfiguration = configuration;
-		createDefaultTextField(configuration.isMultiLine(),
-			configuration.isMultiLine() || (configuration.getType() != OnscreenKeyboardType.Default
-				&& configuration.getType() != OnscreenKeyboardType.Password));
-		softkeyboardActive = true;
-		UITextInput uiTextInput = (UITextInput)textfield;
-		textfield.setHidden(false);
-		uiTextInput.setKeyboardType(getIosInputType(configuration.getType()));
-
-		if (configuration.isPreventCorrection()) {
-			uiTextInput.setAutocorrectionType(UITextAutocorrectionType.No);
-			uiTextInput.setSpellCheckingType(UITextSpellCheckingType.No);
-			uiTextInput.setAutocapitalizationType(UITextAutocapitalizationType.None);
-		} else {
-			uiTextInput.setAutocorrectionType(UITextAutocorrectionType.Yes);
-			uiTextInput.setSpellCheckingType(UITextSpellCheckingType.Yes);
-			uiTextInput.setAutocapitalizationType(UITextAutocapitalizationType.Sentences);
-		}
-
-		if (textfield instanceof UITextView) {
-			if (configuration.getTextInputWrapper().getText().isEmpty()) {
-				((UITextView)textfield).setText(configuration.getPlaceholder());
-				((UITextView)textfield).setTextColor(UIColor.lightGrayColor());
-			} else {
-				((UITextView)textfield).setText(configuration.getTextInputWrapper().getText());
-			}
-			((UITextView)textfield).setDelegate(textViewDelegate);
-		} else {
-			final UITextField asTextField = ((UITextField)textfield);
-			if (configuration.getAutoComplete() != null) {
-				suggestionTable = UITableView.alloc()
-					.initWithFrame(new CGRect(new CGPoint(app.graphics.screenBounds.width, app.graphics.screenBounds.height),
-						new CGSize(app.graphics.screenBounds.width, 50)));
-				suggestionTable.setScrollEnabled(true);
-				suggestionTable.setBackgroundColor(UIColor.whiteColor());
-				suggestionTable.setRowHeight(40);
-
-				final Array<String> available = new Array<>(configuration.getAutoComplete());
-				suggestionTable.setDataSource(new UITableViewDataSource() {
-
-					@Override
-					public UITableViewCell tableViewCellForRowAtIndexPath (UITableView uiTableView, NSIndexPath nsIndexPath) {
-						UITableViewCell cell = uiTableView.dequeueReusableCellWithIdentifier("suggestion");
-						if (cell == null)
-							cell = UITableViewCell.alloc().initWithStyleReuseIdentifier(UITableViewCellStyle.Default, "suggestion");
-						cell.textLabel().setText(available.get((int)nsIndexPath.row()));
-						cell.setBackgroundColor(UIColor.whiteColor());
-						cell.textLabel().setTextColor(UIColor.blackColor());
-						return cell;
-					}
-
-					@Override
-					public long tableViewNumberOfRowsInSection (UITableView uiTableView, long l) {
-						return available.size;
-					}
-				});
-				suggestionTable.setDelegate(new UITableViewDelegate() {
-					@Override
-					public void tableViewDidSelectRowAtIndexPath (UITableView tableView, NSIndexPath indexPath) {
-						tableView.deselectRowAtIndexPathAnimated(indexPath, true);
-						asTextField.setText(available.get((int)indexPath.row()));
-						Gdx.input.closeTextInputField(false);
-					}
-				});
-				asTextField.addTargetActionForControlEvents(new ITargetAction<UITextField>() {
-					@Override
-					public void onEvent (UITextField o, long l) {
-						available.clear();
-						String text = o.text();
-						if (text == null) text = "";
-
-						for (String s : configuration.getAutoComplete()) {
-							if (s.startsWith(text)) {
-								available.add(s);
-							}
-						}
-
-						int height = (int)(available.size * suggestionTable.rowHeight());
-						CGRect textFrame = textfield.frame();
-						suggestionTable.setFrame(new CGRect(new CGPoint(textFrame.origin().x(), textFrame.origin().y() - height),
-							new CGSize(textFrame.size().width(), height)));
-
-						suggestionTable.reloadData();
-					}
-				}, UIControlEvents.EditingChanged);
-
-				app.getUIViewController().view().addSubview(suggestionTable);
-			}
-
-			asTextField.setText(configuration.getTextInputWrapper().getText());
-			asTextField.setDelegate(textDelegate);
-			// Because apple seems to have unreadable placeholder color by default
-			NSAttributedString placeholderString = NSAttributedString.alloc()
-				.initWithStringAttributes(configuration.getPlaceholder(), (NSDictionary<String, ?>)NSDictionary
-					.dictionaryWithObjectForKey(UIColor.lightGrayColor(), UIKit.NSForegroundColorAttributeName()));
-			asTextField.setAttributedPlaceholder(placeholderString);
-
-			if (configuration.isMaskInput()) {
-				if (configuration.isShowUnmaskButton()) {
-					UIButton button = UIButton.buttonWithType(UIButtonType.Custom);
-					UtilityCallback utilityCallback = UtilityCallback.alloc().init();
-					utilityCallback.togglePasswordView(button);
-					button.setImageEdgeInsets(new UIEdgeInsets(0, -16, 0, 0));
-					button.setFrame(new CGRect(new CGPoint(textfield.frame().size().width() - 25, 5), new CGSize(25, 25)));
-					button.addTargetActionForControlEvents(utilityCallback, new SEL("togglePasswordView"),
-						UIControlEvents.TouchUpInside);
-					((UITextField)textfield).setRightView(button);
-					((UITextField)textfield).setRightViewMode(UITextFieldViewMode.Always);
-				} else {
-					asTextField.setSecureTextEntry(true);
-				}
-			}
-		}
-		textfield.reloadInputViews();
-		textfield.becomeFirstResponder();
-
-		UITextPosition start = uiTextInput.positionFromPositionOffset(uiTextInput.beginningOfDocument(),
-			configuration.getTextInputWrapper().getSelectionStart());
-		UITextPosition end = uiTextInput.positionFromPositionOffset(uiTextInput.beginningOfDocument(),
-			configuration.getTextInputWrapper().getSelectionEnd());
-
-		uiTextInput.setSelectedTextRange(uiTextInput.textRangeFromPositionToPosition(start, end));
-
+		IOSNativeInput nativeInput = createNativeInput(configuration);
+		this.nativeInput = nativeInput;
+		nativeInput.open();
+		// With a hardware or already-floating keyboard no keyboard notification will fire, but the field now occupies
+		// the bottom of the screen — report it. Deferred one frame so a docked keyboard's willShow (queued by the
+		// provider during becomeFirstResponder, running before this) gets the chance to report the full height instead.
+		Gdx.app.postRunnable( () -> {
+			if (!keyboardOpen && this.nativeInput == nativeInput)
+				dispatchHeightAndVisibilityChangesToObserver(true, nativeInput.getFieldOccupiedHeight());
+		});
 	}
 
 	@Override
-	public void closeTextInputField (final boolean isConfirmative, @Null final NativeInputCloseCallback callback) {
-		if (textfield == null) return;
-		UITextInput uiTextInput = (UITextInput)textfield;
-		softkeyboardActive = false;
-		final String text;
-		if (textfield instanceof UITextView) {
-			UITextView textView = (UITextView)textfield;
-			if (textView.textColor().isEqual(UIColor.lightGrayColor())) {
-				text = "";
-			} else {
-				text = ((UITextView)textfield).text();
-			}
-		} else {
-			text = ((UITextField)textfield).text();
-		}
-		final long selectionStart = uiTextInput.offsetFromPositionToPosition(uiTextInput.beginningOfDocument(),
-			uiTextInput.selectedTextRange().start());
-		final long selectionEnd = uiTextInput.offsetFromPositionToPosition(uiTextInput.beginningOfDocument(),
-			uiTextInput.selectedTextRange().end());
-
-		final NativeInputConfiguration configuration = nativeInputConfiguration;
-		Gdx.app.postRunnable(new Runnable() {
-			@Override
-			public void run () {
-				configuration.getTextInputWrapper().writeResults(text, (int)selectionStart, (int)selectionEnd);
-
-				// We actually don't care about whether the keyboard should be closed or not, cause iOS is not buggy in that regard
-				boolean keepOpen = configuration.getCloseCallback().onClose(isConfirmative);
-				if (callback != null) keepOpen |= callback.onClose(isConfirmative);
-			}
-		});
-
-		if (suggestionTable != null) {
-			for (Object action : ((UITextField)textfield).allTargets().allObjects()) {
-				if (action instanceof TargetActionProxy) {
-					((UITextField)textfield).removeTargetActionForControlEvents(action, new SEL("proxySelector::"),
-						UIControlEvents.EditingChanged);
-					ObjCRuntime.dissociateObjCObject(textfield, action);
-				}
-			}
-			suggestionTable.removeFromSuperview();
-			ObjCRuntime.disposeObject(suggestionTable);
-			suggestionTable = null;
-		}
-
-		textfield.resignFirstResponder();
-		// We could first move the text field animated down and than delete, but I think it doesn't matter
-		textfield.removeFromSuperview();
-		textfield = null;
-		nativeInputConfiguration = null;
+	public void closeTextInputField (boolean isConfirmative, @Null NativeInputCloseCallback callback) {
+		IOSNativeInput nativeInput = this.nativeInput;
+		if (nativeInput == null) return;
+		this.nativeInput = null;
+		boolean openedWhenClosed = keyboardOpen;
+		nativeInput.close(isConfirmative, callback);
+		// Without a docked keyboard up no willHide will fire (hardware/floating keyboard) — and when a keyboard hide
+		// triggered this close, the flag is false too: dispatch the hide here. With a docked keyboard still up, the
+		// resignFirstResponder above triggers the willHide that dispatches it.
+		if (!openedWhenClosed) dispatchHeightAndVisibilityChangesToObserver(false, 0);
 	}
 
 	@Override
 	public boolean isTextInputFieldOpened () {
-		return textfield != null && !textfield.isHidden();
+		return nativeInput != null;
 	}
 
 	@Override
 	public void setKeyboardHeightObserver (KeyboardHeightObserver observer) {
-		app.graphics.viewController.observer = observer;
+		this.observer = observer;
 	}
 
-	protected long getIosInputType (OnscreenKeyboardType type) {
+	protected static long getIosInputType (OnscreenKeyboardType type) {
 		long preferredInputType;
 		switch (type) {
 		case NumberPad:
@@ -702,6 +525,74 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 		return preferredInputType;
 	}
 
+	protected void dispatchHeightAndVisibilityChangesToObserver (boolean visible, int height) {
+		if (observer == null) return;
+		boolean visibilityChanged = visible != cachedVisible;
+		boolean heightChanged = height != cachedHeight;
+		if (!visibilityChanged && !heightChanged) return;
+
+		if (visibilityChanged) {
+			if (visible)
+				observer.onKeyboardShow(height);
+			else
+				observer.onKeyboardHide();
+		} else if (visible) {
+			// Height changed but visibility didn't, and keyboard is visible
+			observer.onKeyboardShow(height);
+		}
+		if (heightChanged) observer.onKeyboardHeightChanged(height);
+
+		cachedVisible = visible;
+		cachedHeight = height;
+	}
+
+	@Override
+	public void onKeyboardHeightChanged (boolean opened, double height) {
+		keyboardOpen = opened;
+
+		IOSNativeInput nativeInput = this.nativeInput;
+		UIView textField = getActiveKeyboardTextField();
+
+		if (opened) {
+			if (nativeInput == null || !textField.isFirstResponder()) {
+				// No native input field to lay out: invisible keyboard, alert dialog or a foreign first responder
+				double heightScale = Gdx.graphics.getHeight() / UIScreen.mainScreen().bounds().size().height();
+				dispatchHeightAndVisibilityChangesToObserver(true, (int)(height * heightScale));
+				return;
+			}
+
+			nativeInput.layoutTextFieldAboveKeyboard(height);
+			dispatchHeightAndVisibilityChangesToObserver(true, nativeInput.getFieldOccupiedHeight());
+		} else {
+			// keyboardWillHide does not mean the keyboard closed: password auto-fill, undocking to a floating keyboard
+			// and field replacement all fire it while our field stays first responder (settled, since the provider
+			// deferred this event one frame). The keyboard is still open then.
+			if (textField != null && textField.isFirstResponder()) {
+				int occupiedHeight = 0;
+				if (nativeInput != null) {
+					// The re-pinned field still occupies the bottom of the screen
+					nativeInput.moveTextFieldToBottom();
+					occupiedHeight = nativeInput.getFieldOccupiedHeight();
+				}
+				dispatchHeightAndVisibilityChangesToObserver(true, occupiedHeight);
+				return;
+			}
+
+			if (nativeInput != null) {
+				// Dispatches the hide itself (keyboardOpen is already false here)
+				closeTextInputField(false, null);
+			} else {
+				dispatchHeightAndVisibilityChangesToObserver(false, 0);
+				if (invisibleTextField != null) setOnscreenKeyboardVisible(false, null);
+			}
+		}
+	}
+
+	@Override
+	public void onScreenLayoutChanged () {
+		if (!keyboardOpen && nativeInput != null) nativeInput.moveTextFieldToBottom();
+	}
+
 	/** Set the keyboard to close when the UITextField return key is pressed
 	 * @param shouldClose Whether or not the keyboard should clsoe on return key press */
 	public void setKeyboardCloseOnReturnKey (boolean shouldClose) {
@@ -709,123 +600,45 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	}
 
 	public UIView getActiveKeyboardTextField () {
-		return textfield;
+		if (nativeInput != null) return nativeInput.getTextField();
+		return invisibleTextField;
 	}
 
-	static class UtilityCallback extends NSObject {
-
-		@Selector("alloc")
-		public static native UtilityCallback alloc ();
-
-		@Selector("init")
-		public native UtilityCallback init ();
-
-		protected UtilityCallback (Pointer peer) {
-			super(peer);
-		}
-
-		@Selector("doneClicked")
-		public void doneClicked () {
-			Gdx.input.closeTextInputField(true);
-		}
-
-		@Selector("togglePasswordView")
-		public void togglePasswordView (UIButton sender) {
-			// TODO: 24.11.22 This is silly, but idk how to do reasonable better
-			UITextField field = ((UITextField)((DefaultIOSInput)Gdx.input).getActiveKeyboardTextField());
-			field.setSecureTextEntry(!field.isSecureTextEntry());
-			// Probably not worth caching
-			String fileName = field.isSecureTextEntry() ? "ic_password_visible.png" : "ic_password_invisible.png";
-			byte[] data = Gdx.files.classpath(fileName).readBytes();
-			NSData nsData = NSData.dataWithBytesLength(PtrFactory.newByteArray(data), data.length);
-			sender.setImageForState(UIImage.imageWithData(nsData), UIControlState.Normal);
-		}
-	}
-
-	private void createDefaultTextField (boolean isMultiLine, boolean needsDoneToolbar) {
-		CGRect rect = new CGRect(new CGPoint(app.graphics.screenBounds.width, app.graphics.screenBounds.height),
-			new CGSize(app.graphics.screenBounds.width, 50));
-
-		UIToolbar uiToolbar = null;
-		if (needsDoneToolbar) {
-			uiToolbar = UIToolbar.alloc()
-				.initWithFrame(new CGRect(new CGPoint(0, 0), new CGSize(UIScreen.mainScreen().bounds().size().width(), 35)));
-
-			UIBarButtonItem space = UIBarButtonItem.alloc()
-				.initWithBarButtonSystemItemTargetAction(UIBarButtonSystemItem.FlexibleSpace, null, null);
-
-			UIBarButtonItem doneButton = UIBarButtonItem.alloc().initWithBarButtonSystemItemTargetAction(UIBarButtonSystemItem.Done,
-				UtilityCallback.alloc().init(), new SEL("doneClicked"));
-			uiToolbar.setItems((NSArray<? extends UIBarButtonItem>)NSArray.arrayWithObjects(space, doneButton, null));
-			uiToolbar.updateConstraintsIfNeeded();
-		}
-
-		if (isMultiLine) {
-			UITextView textView = UITextView.alloc().initWithFrame(rect);
-			textView.setInputAccessoryView(uiToolbar);
-			textView.setTextColor(UIColor.blackColor());
-			textView.setReturnKeyType(UIReturnKeyType.Default);
-			textfield = textView;
-		} else {
-			UITextField uiTextField = UITextField.alloc().initWithFrame(rect);
-			uiTextField.setTextColor(UIColor.blackColor());
-			uiTextField.setReturnKeyType(UIReturnKeyType.Done);
-			uiTextField.setInputAccessoryView(uiToolbar);
-			textfield = uiTextField;
-		}
-
-		UITextInputTraits asTrait = (UITextInputTraits)textfield;
-		// Parameters
-		// Setting parameters
-		asTrait.setKeyboardType(UIKeyboardType.Default);
-		asTrait.setAutocapitalizationType(UITextAutocapitalizationType.None);
-		asTrait.setAutocorrectionType(UITextAutocorrectionType.Yes);
-		asTrait.setSpellCheckingType(UITextSpellCheckingType.Yes);
-		textfield.setHidden(true);
-		textfield.setBackgroundColor(UIColor.whiteColor());
-
-		app.getUIViewController().view().addSubview(textfield);
+	@Override
+	public NativeInputConfiguration getNativeInputConfiguration () {
+		return nativeInput != null ? nativeInput.getConfiguration() : null;
 	}
 
 	/** Builds an {@link UIAlertController} with an added {@link UITextField} for inputting text.
 	 * @param listener Text input listener
 	 * @param title Dialog title
 	 * @param text Text for text field
-	 * @param type
+	 * @param placeholder Placeholder text shown in the text field
+	 * @param type The keyboard type to use
 	 * @return UIAlertController */
 	private UIAlertController buildUIAlertController (final TextInputListener listener, String title, final String text,
 		final String placeholder, final OnscreenKeyboardType type) {
 		final UIAlertController uiAlertController = UIAlertController.alertControllerWithTitleMessagePreferredStyle(title, text,
 			UIAlertControllerStyle.Alert);
-		uiAlertController.addTextFieldWithConfigurationHandler(new Block_addTextFieldWithConfigurationHandler() {
-			@Override
-			public void call_addTextFieldWithConfigurationHandler (UITextField uiTextField) {
-				uiTextField.setPlaceholder(placeholder);
-				uiTextField.setText(text);
-				uiTextField.setKeyboardType(getIosInputType(type));
-				if (type == OnscreenKeyboardType.Password) {
-					uiTextField.setSecureTextEntry(true);
-				}
-				uiTextField.reloadInputViews();
+		uiAlertController.addTextFieldWithConfigurationHandler(uiTextField -> {
+			uiTextField.setPlaceholder(placeholder);
+			uiTextField.setText(text);
+			uiTextField.setKeyboardType(getIosInputType(type));
+			if (type == OnscreenKeyboardType.Password) {
+				uiTextField.setSecureTextEntry(true);
 			}
 		});
-		uiAlertController.addAction(
-			UIAlertAction.actionWithTitleStyleHandler("Ok", UIAlertActionStyle.Default, new Block_actionWithTitleStyleHandler() {
 
-				@Override
-				public void call_actionWithTitleStyleHandler (UIAlertAction uiAlertAction) {
-					// user clicked "Ok" button
-					UITextField textField = uiAlertController.textFields().get(0);
-					listener.input(textField.text());
-				}
-			}));
-		uiAlertController.addAction(
-			UIAlertAction.actionWithTitleStyleHandler("Cancel", UIAlertActionStyle.Cancel, new Block_actionWithTitleStyleHandler() {
-				@Override
-				public void call_actionWithTitleStyleHandler (UIAlertAction uiAlertAction) {
-					// user clicked "Cancel" button
-					listener.canceled();
-				}
+		uiAlertController.addAction(UIAlertAction.actionWithTitleStyleHandler("Ok", UIAlertActionStyle.Default, (uiAlertAction) -> {
+			// user clicked "Ok" button
+			UITextField textField = uiAlertController.textFields().get(0);
+			listener.input(textField.text());
+		}));
+
+		uiAlertController
+			.addAction(UIAlertAction.actionWithTitleStyleHandler("Cancel", UIAlertActionStyle.Cancel, (uiAlertAction) -> {
+				// user clicked "Cancel" button
+				listener.canceled();
 			}));
 		return uiAlertController;
 	}
@@ -883,13 +696,13 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	public int getRotation () {
 		// we measure orientation counter clockwise, just like on Android
 		switch ((int)app.uiApp.statusBarOrientation()) {
-		case (int)LandscapeLeft:
+		case (int)UIInterfaceOrientation.LandscapeLeft:
 			return 270;
-		case (int)PortraitUpsideDown:
+		case (int)UIInterfaceOrientation.PortraitUpsideDown:
 			return 180;
-		case (int)LandscapeRight:
+		case (int)UIInterfaceOrientation.LandscapeRight:
 			return 90;
-		case (int)Portrait:
+		case (int)UIInterfaceOrientation.Portrait:
 		default:
 			return 0;
 		}
@@ -942,13 +755,13 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 				char character;
 
 				switch (keyCode) {
-				case (int)Keys.DEL:
+				case Keys.DEL:
 					character = 8;
 					break;
-				case (int)Keys.FORWARD_DEL:
+				case Keys.FORWARD_DEL:
 					character = 127;
 					break;
-				case (int)Keys.ENTER:
+				case Keys.ENTER:
 					character = 13;
 					break;
 				default:
@@ -989,18 +802,18 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 			for (TouchEvent event : touchEvents) {
 				currentEventTimeStamp = event.timestamp;
 				switch ((int)event.phase) {
-				case (int)Began:
+				case (int)UITouchPhase.Began:
 					if (inputProcessor != null) inputProcessor.touchDown(event.x, event.y, event.pointer, Buttons.LEFT);
 					if (numTouched >= 1) justTouched = true;
 					break;
-				case (int)Cancelled:
-					if (inputProcessor != null) inputProcessor.touchCancelled(event.x, event.y, event.pointer, Buttons.LEFT);
-					break;
-				case (int)Ended:
+				case (int)UITouchPhase.Ended:
 					if (inputProcessor != null) inputProcessor.touchUp(event.x, event.y, event.pointer, Buttons.LEFT);
 					break;
-				case (int)Moved:
-				case (int)Stationary:
+				case (int)UITouchPhase.Cancelled:
+					if (inputProcessor != null) inputProcessor.touchCancelled(event.x, event.y, event.pointer, Buttons.LEFT);
+					break;
+				case (int)UITouchPhase.Moved:
+				case (int)UITouchPhase.Stationary:
 					if (inputProcessor != null) inputProcessor.touchDragged(event.x, event.y, event.pointer);
 					break;
 				}
@@ -1020,18 +833,18 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 			for (KeyEvent e : keyEvents) {
 				currentEventTimeStamp = e.timeStamp;
 				switch (e.type) {
-				case (int)KeyEvent.KEY_DOWN:
+				case KeyEvent.KEY_DOWN:
 					if (inputProcessor != null) inputProcessor.keyDown(e.keyCode);
 					keyJustPressed = true;
 					justPressedKeys[e.keyCode] = true;
 					break;
-				case (int)KeyEvent.KEY_UP:
+				case KeyEvent.KEY_UP:
 					if (inputProcessor != null) inputProcessor.keyUp(e.keyCode);
 					break;
-				case (int)KeyEvent.KEY_TYPED:
-					// don't process key typed events if soft keyboard is active
+				case KeyEvent.KEY_TYPED:
+					// don't process key typed events if soft keyboard is active (= one of our text fields exists)
 					// the soft keyboard hook already catches the changes
-					if (!softkeyboardActive && inputProcessor != null) inputProcessor.keyTyped(e.keyChar);
+					if (getActiveKeyboardTextField() == null && inputProcessor != null) inputProcessor.keyTyped(e.keyChar);
 				}
 
 			}
@@ -1048,21 +861,25 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 	}
 
 	private int findPointer (UITouch touch) {
+		long ptr = touch.getPeerPointer();
 		for (int i = 0; i < touchDown.length; i++) {
-			if (touchDown[i] == touch.getPeerPointer()) return i;
+			if (touchDown[i] == ptr) return i;
 		}
 		// If pointer is not found
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < touchDown.length; i++) {
 			sb.append(i + ":" + touchDown[i] + " ");
 		}
-		Gdx.app.error("IOSInput", "Pointer ID lookup failed: " + touch + ", " + sb.toString());
+		Gdx.app.error("IOSInput", "Pointer ID lookup failed: " + ptr + ", " + sb.toString());
 		return POINTER_NOT_FOUND;
 	}
 
 	private void toTouchEvents (NSSet<? extends UITouch> touches) {
+		NSArray<? extends UITouch> array = touches.allObjects();
+		int length = (int)array.count();
 		final IOSScreenBounds screenBounds = app.getScreenBounds();
-		for (UITouch touch : touches.allObjects()) {
+		for (int i = 0; i < length; i++) {
+			UITouch touch = array.objectAtIndex(i);
 			int locX, locY;
 			// Get and map the location to our drawing space
 			{
@@ -1178,270 +995,269 @@ public class DefaultIOSInput extends AbstractInput implements IOSInput {
 		} catch (IllegalArgumentException e) {
 			return Keys.UNKNOWN;
 		}
-
 		switch ((int)keyCode) {
-		case (int)KeyboardA:
+		case (int)UIKeyboardHIDUsage.KeyboardA:
 			return Keys.A;
-		case (int)KeyboardB:
+		case (int)UIKeyboardHIDUsage.KeyboardB:
 			return Keys.B;
-		case (int)KeyboardC:
+		case (int)UIKeyboardHIDUsage.KeyboardC:
 			return Keys.C;
-		case (int)KeyboardD:
+		case (int)UIKeyboardHIDUsage.KeyboardD:
 			return Keys.D;
-		case (int)KeyboardE:
+		case (int)UIKeyboardHIDUsage.KeyboardE:
 			return Keys.E;
-		case (int)KeyboardF:
+		case (int)UIKeyboardHIDUsage.KeyboardF:
 			return Keys.F;
-		case (int)KeyboardG:
+		case (int)UIKeyboardHIDUsage.KeyboardG:
 			return Keys.G;
-		case (int)KeyboardH:
+		case (int)UIKeyboardHIDUsage.KeyboardH:
 			return Keys.H;
-		case (int)KeyboardI:
+		case (int)UIKeyboardHIDUsage.KeyboardI:
 			return Keys.I;
-		case (int)KeyboardJ:
+		case (int)UIKeyboardHIDUsage.KeyboardJ:
 			return Keys.J;
-		case (int)KeyboardK:
+		case (int)UIKeyboardHIDUsage.KeyboardK:
 			return Keys.K;
-		case (int)KeyboardL:
+		case (int)UIKeyboardHIDUsage.KeyboardL:
 			return Keys.L;
-		case (int)KeyboardM:
+		case (int)UIKeyboardHIDUsage.KeyboardM:
 			return Keys.M;
-		case (int)KeyboardN:
+		case (int)UIKeyboardHIDUsage.KeyboardN:
 			return Keys.N;
-		case (int)KeyboardO:
+		case (int)UIKeyboardHIDUsage.KeyboardO:
 			return Keys.O;
-		case (int)KeyboardP:
+		case (int)UIKeyboardHIDUsage.KeyboardP:
 			return Keys.P;
-		case (int)KeyboardQ:
+		case (int)UIKeyboardHIDUsage.KeyboardQ:
 			return Keys.Q;
-		case (int)KeyboardR:
+		case (int)UIKeyboardHIDUsage.KeyboardR:
 			return Keys.R;
-		case (int)KeyboardS:
+		case (int)UIKeyboardHIDUsage.KeyboardS:
 			return Keys.S;
-		case (int)KeyboardT:
+		case (int)UIKeyboardHIDUsage.KeyboardT:
 			return Keys.T;
-		case (int)KeyboardU:
+		case (int)UIKeyboardHIDUsage.KeyboardU:
 			return Keys.U;
-		case (int)KeyboardV:
+		case (int)UIKeyboardHIDUsage.KeyboardV:
 			return Keys.V;
-		case (int)KeyboardW:
+		case (int)UIKeyboardHIDUsage.KeyboardW:
 			return Keys.W;
-		case (int)KeyboardX:
+		case (int)UIKeyboardHIDUsage.KeyboardX:
 			return Keys.X;
-		case (int)KeyboardY:
+		case (int)UIKeyboardHIDUsage.KeyboardY:
 			return Keys.Y;
-		case (int)KeyboardZ:
+		case (int)UIKeyboardHIDUsage.KeyboardZ:
 			return Keys.Z;
-		case (int)Keyboard1:
+		case (int)UIKeyboardHIDUsage.Keyboard1:
 			return Keys.NUM_1;
-		case (int)Keyboard2:
+		case (int)UIKeyboardHIDUsage.Keyboard2:
 			return Keys.NUM_2;
-		case (int)Keyboard3:
+		case (int)UIKeyboardHIDUsage.Keyboard3:
 			return Keys.NUM_3;
-		case (int)Keyboard4:
+		case (int)UIKeyboardHIDUsage.Keyboard4:
 			return Keys.NUM_4;
-		case (int)Keyboard5:
+		case (int)UIKeyboardHIDUsage.Keyboard5:
 			return Keys.NUM_5;
-		case (int)Keyboard6:
+		case (int)UIKeyboardHIDUsage.Keyboard6:
 			return Keys.NUM_6;
-		case (int)Keyboard7:
+		case (int)UIKeyboardHIDUsage.Keyboard7:
 			return Keys.NUM_7;
-		case (int)Keyboard8:
+		case (int)UIKeyboardHIDUsage.Keyboard8:
 			return Keys.NUM_8;
-		case (int)Keyboard9:
+		case (int)UIKeyboardHIDUsage.Keyboard9:
 			return Keys.NUM_9;
-		case (int)Keyboard0:
+		case (int)UIKeyboardHIDUsage.Keyboard0:
 			return Keys.NUM_0;
-		case (int)KeyboardReturnOrEnter:
+		case (int)UIKeyboardHIDUsage.KeyboardReturnOrEnter:
 			return Keys.ENTER;
-		case (int)KeyboardEscape:
+		case (int)UIKeyboardHIDUsage.KeyboardEscape:
 			return Keys.ESCAPE;
-		case (int)KeyboardDeleteOrBackspace:
+		case (int)UIKeyboardHIDUsage.KeyboardDeleteOrBackspace:
 			return Keys.BACKSPACE;
-		case (int)KeyboardTab:
+		case (int)UIKeyboardHIDUsage.KeyboardTab:
 			return Keys.TAB;
-		case (int)KeyboardSpacebar:
+		case (int)UIKeyboardHIDUsage.KeyboardSpacebar:
 			return Keys.SPACE;
-		case (int)KeyboardHyphen:
+		case (int)UIKeyboardHIDUsage.KeyboardHyphen:
 			return Keys.MINUS;
-		case (int)KeyboardEqualSign:
+		case (int)UIKeyboardHIDUsage.KeyboardEqualSign:
 			return Keys.EQUALS;
-		case (int)KeyboardOpenBracket:
+		case (int)UIKeyboardHIDUsage.KeyboardOpenBracket:
 			return Keys.LEFT_BRACKET;
-		case (int)KeyboardCloseBracket:
+		case (int)UIKeyboardHIDUsage.KeyboardCloseBracket:
 			return Keys.RIGHT_BRACKET;
-		case (int)KeyboardBackslash:
+		case (int)UIKeyboardHIDUsage.KeyboardBackslash:
 			return Keys.BACKSLASH;
-		case (int)KeyboardNonUSPound:
+		case (int)UIKeyboardHIDUsage.KeyboardNonUSPound:
 			return Keys.POUND;
-		case (int)KeyboardSemicolon:
+		case (int)UIKeyboardHIDUsage.KeyboardSemicolon:
 			return Keys.SEMICOLON;
-		case (int)KeyboardQuote:
+		case (int)UIKeyboardHIDUsage.KeyboardQuote:
 			return Keys.APOSTROPHE;
-		case (int)KeyboardGraveAccentAndTilde:
+		case (int)UIKeyboardHIDUsage.KeyboardGraveAccentAndTilde:
 			return Keys.GRAVE;
-		case (int)KeyboardComma:
+		case (int)UIKeyboardHIDUsage.KeyboardComma:
 			return Keys.COMMA;
-		case (int)KeyboardPeriod:
+		case (int)UIKeyboardHIDUsage.KeyboardPeriod:
 			return Keys.PERIOD;
-		case (int)KeyboardSlash:
+		case (int)UIKeyboardHIDUsage.KeyboardSlash:
 			return Keys.SLASH;
-		case (int)KeyboardF1:
+		case (int)UIKeyboardHIDUsage.KeyboardF1:
 			return Keys.F1;
-		case (int)KeyboardF2:
+		case (int)UIKeyboardHIDUsage.KeyboardF2:
 			return Keys.F2;
-		case (int)KeyboardF3:
+		case (int)UIKeyboardHIDUsage.KeyboardF3:
 			return Keys.F3;
-		case (int)KeyboardF4:
+		case (int)UIKeyboardHIDUsage.KeyboardF4:
 			return Keys.F4;
-		case (int)KeyboardF5:
+		case (int)UIKeyboardHIDUsage.KeyboardF5:
 			return Keys.F5;
-		case (int)KeyboardF6:
+		case (int)UIKeyboardHIDUsage.KeyboardF6:
 			return Keys.F6;
-		case (int)KeyboardF7:
+		case (int)UIKeyboardHIDUsage.KeyboardF7:
 			return Keys.F7;
-		case (int)KeyboardF8:
+		case (int)UIKeyboardHIDUsage.KeyboardF8:
 			return Keys.F8;
-		case (int)KeyboardF9:
+		case (int)UIKeyboardHIDUsage.KeyboardF9:
 			return Keys.F9;
-		case (int)KeyboardF10:
+		case (int)UIKeyboardHIDUsage.KeyboardF10:
 			return Keys.F10;
-		case (int)KeyboardF11:
+		case (int)UIKeyboardHIDUsage.KeyboardF11:
 			return Keys.F11;
-		case (int)KeyboardF12:
+		case (int)UIKeyboardHIDUsage.KeyboardF12:
 			return Keys.F12;
-		case (int)KeyboardF13:
+		case (int)UIKeyboardHIDUsage.KeyboardF13:
 			return Keys.F13;
-		case (int)KeyboardF14:
+		case (int)UIKeyboardHIDUsage.KeyboardF14:
 			return Keys.F14;
-		case (int)KeyboardF15:
+		case (int)UIKeyboardHIDUsage.KeyboardF15:
 			return Keys.F15;
-		case (int)KeyboardF16:
+		case (int)UIKeyboardHIDUsage.KeyboardF16:
 			return Keys.F16;
-		case (int)KeyboardF17:
+		case (int)UIKeyboardHIDUsage.KeyboardF17:
 			return Keys.F17;
-		case (int)KeyboardF18:
+		case (int)UIKeyboardHIDUsage.KeyboardF18:
 			return Keys.F18;
-		case (int)KeyboardF19:
+		case (int)UIKeyboardHIDUsage.KeyboardF19:
 			return Keys.F19;
-		case (int)KeyboardF20:
+		case (int)UIKeyboardHIDUsage.KeyboardF20:
 			return Keys.F20;
-		case (int)KeyboardF21:
+		case (int)UIKeyboardHIDUsage.KeyboardF21:
 			return Keys.F21;
-		case (int)KeyboardF22:
+		case (int)UIKeyboardHIDUsage.KeyboardF22:
 			return Keys.F22;
-		case (int)KeyboardF23:
+		case (int)UIKeyboardHIDUsage.KeyboardF23:
 			return Keys.F23;
-		case (int)KeyboardF24:
+		case (int)UIKeyboardHIDUsage.KeyboardF24:
 			return Keys.F24;
-		case (int)KeyboardPause:
+		case (int)UIKeyboardHIDUsage.KeyboardPause:
 			return Keys.PAUSE;
-		case (int)KeyboardInsert:
+		case (int)UIKeyboardHIDUsage.KeyboardInsert:
 			return Keys.INSERT;
-		case (int)KeyboardHome:
+		case (int)UIKeyboardHIDUsage.KeyboardHome:
 			return Keys.HOME;
-		case (int)KeyboardPageUp:
+		case (int)UIKeyboardHIDUsage.KeyboardPageUp:
 			return Keys.PAGE_UP;
-		case (int)KeyboardDeleteForward:
+		case (int)UIKeyboardHIDUsage.KeyboardDeleteForward:
 			return Keys.FORWARD_DEL;
-		case (int)KeyboardEnd:
+		case (int)UIKeyboardHIDUsage.KeyboardEnd:
 			return Keys.END;
-		case (int)KeyboardPageDown:
+		case (int)UIKeyboardHIDUsage.KeyboardPageDown:
 			return Keys.PAGE_DOWN;
-		case (int)KeyboardRightArrow:
+		case (int)UIKeyboardHIDUsage.KeyboardRightArrow:
 			return Keys.RIGHT;
-		case (int)KeyboardLeftArrow:
+		case (int)UIKeyboardHIDUsage.KeyboardLeftArrow:
 			return Keys.LEFT;
-		case (int)KeyboardDownArrow:
+		case (int)UIKeyboardHIDUsage.KeyboardDownArrow:
 			return Keys.DOWN;
-		case (int)KeyboardUpArrow:
+		case (int)UIKeyboardHIDUsage.KeyboardUpArrow:
 			return Keys.UP;
-		case (int)KeypadNumLock:
+		case (int)UIKeyboardHIDUsage.KeypadNumLock:
 			return Keys.NUM_LOCK;
-		case (int)KeypadSlash:
+		case (int)UIKeyboardHIDUsage.KeypadSlash:
 			return Keys.NUMPAD_DIVIDE;
-		case (int)KeypadAsterisk:
+		case (int)UIKeyboardHIDUsage.KeypadAsterisk:
 			return Keys.NUMPAD_MULTIPLY;
-		case (int)KeypadHyphen:
+		case (int)UIKeyboardHIDUsage.KeypadHyphen:
 			return Keys.NUMPAD_SUBTRACT;
-		case (int)KeypadPlus:
+		case (int)UIKeyboardHIDUsage.KeypadPlus:
 			return Keys.NUMPAD_ADD;
-		case (int)KeypadEnter:
+		case (int)UIKeyboardHIDUsage.KeypadEnter:
 			return Keys.NUMPAD_ENTER;
-		case (int)Keypad1:
+		case (int)UIKeyboardHIDUsage.Keypad1:
 			return Keys.NUM_1;
-		case (int)Keypad2:
+		case (int)UIKeyboardHIDUsage.Keypad2:
 			return Keys.NUM_2;
-		case (int)Keypad3:
+		case (int)UIKeyboardHIDUsage.Keypad3:
 			return Keys.NUM_3;
-		case (int)Keypad4:
+		case (int)UIKeyboardHIDUsage.Keypad4:
 			return Keys.NUM_4;
-		case (int)Keypad5:
+		case (int)UIKeyboardHIDUsage.Keypad5:
 			return Keys.NUM_5;
-		case (int)Keypad6:
+		case (int)UIKeyboardHIDUsage.Keypad6:
 			return Keys.NUM_6;
-		case (int)Keypad7:
+		case (int)UIKeyboardHIDUsage.Keypad7:
 			return Keys.NUM_7;
-		case (int)Keypad8:
+		case (int)UIKeyboardHIDUsage.Keypad8:
 			return Keys.NUM_8;
-		case (int)Keypad9:
+		case (int)UIKeyboardHIDUsage.Keypad9:
 			return Keys.NUM_9;
-		case (int)Keypad0:
+		case (int)UIKeyboardHIDUsage.Keypad0:
 			return Keys.NUM_0;
-		case (int)KeypadPeriod:
+		case (int)UIKeyboardHIDUsage.KeypadPeriod:
 			return Keys.NUMPAD_DOT;
-		case (int)KeyboardNonUSBackslash:
+		case (int)UIKeyboardHIDUsage.KeyboardNonUSBackslash:
 			return Keys.BACKSLASH;
-		case (int)KeyboardApplication:
+		case (int)UIKeyboardHIDUsage.KeyboardApplication:
 			return Keys.MENU;
-		case (int)KeyboardPower:
+		case (int)UIKeyboardHIDUsage.KeyboardPower:
 			return Keys.POWER;
-		case (int)KeypadEqualSign:
-		case (int)KeypadEqualSignAS400:
+		case (int)UIKeyboardHIDUsage.KeypadEqualSign:
+		case (int)UIKeyboardHIDUsage.KeypadEqualSignAS400:
 			return Keys.NUMPAD_EQUALS;
-		case (int)KeyboardHelp:
+		case (int)UIKeyboardHIDUsage.KeyboardHelp:
 			return Keys.F1;
-		case (int)KeyboardMenu:
+		case (int)UIKeyboardHIDUsage.KeyboardMenu:
 			return Keys.MENU;
-		case (int)KeyboardSelect:
+		case (int)UIKeyboardHIDUsage.KeyboardSelect:
 			return Keys.BUTTON_SELECT;
-		case (int)KeyboardStop:
+		case (int)UIKeyboardHIDUsage.KeyboardStop:
 			return Keys.MEDIA_STOP;
-		case (int)KeyboardFind:
+		case (int)UIKeyboardHIDUsage.KeyboardFind:
 			return Keys.SEARCH;
-		case (int)KeyboardMute:
+		case (int)UIKeyboardHIDUsage.KeyboardMute:
 			return Keys.MUTE;
-		case (int)KeyboardVolumeUp:
+		case (int)UIKeyboardHIDUsage.KeyboardVolumeUp:
 			return Keys.VOLUME_UP;
-		case (int)KeyboardVolumeDown:
+		case (int)UIKeyboardHIDUsage.KeyboardVolumeDown:
 			return Keys.VOLUME_DOWN;
-		case (int)KeypadComma:
+		case (int)UIKeyboardHIDUsage.KeypadComma:
 			return Keys.NUMPAD_COMMA;
-		case (int)KeyboardAlternateErase:
+		case (int)UIKeyboardHIDUsage.KeyboardAlternateErase:
 			return Keys.DEL;
-		case (int)KeyboardCancel:
+		case (int)UIKeyboardHIDUsage.KeyboardCancel:
 			return Keys.ESCAPE;
-		case (int)KeyboardClear:
+		case (int)UIKeyboardHIDUsage.KeyboardClear:
 			return Keys.CLEAR;
-		case (int)KeyboardReturn:
+		case (int)UIKeyboardHIDUsage.KeyboardReturn:
 			return Keys.ENTER;
-		case (int)KeyboardLeftControl:
+		case (int)UIKeyboardHIDUsage.KeyboardLeftControl:
 			return Keys.CONTROL_LEFT;
-		case (int)KeyboardLeftShift:
+		case (int)UIKeyboardHIDUsage.KeyboardLeftShift:
 			return Keys.SHIFT_LEFT;
-		case (int)KeyboardLeftAlt:
+		case (int)UIKeyboardHIDUsage.KeyboardLeftAlt:
 			return Keys.ALT_LEFT;
-		case (int)KeyboardRightControl:
+		case (int)UIKeyboardHIDUsage.KeyboardRightControl:
 			return Keys.CONTROL_RIGHT;
-		case (int)KeyboardRightShift:
+		case (int)UIKeyboardHIDUsage.KeyboardRightShift:
 			return Keys.SHIFT_RIGHT;
-		case (int)KeyboardRightAlt:
+		case (int)UIKeyboardHIDUsage.KeyboardRightAlt:
 			return Keys.ALT_RIGHT;
-		case (int)KeyboardCapsLock:
+		case (int)UIKeyboardHIDUsage.KeyboardCapsLock:
 			return Keys.CAPS_LOCK;
-		case (int)KeyboardPrintScreen:
+		case (int)UIKeyboardHIDUsage.KeyboardPrintScreen:
 			return Keys.PRINT_SCREEN;
-		case (int)KeyboardScrollLock:
+		case (int)UIKeyboardHIDUsage.KeyboardScrollLock:
 			return Keys.SCROLL_LOCK;
 		default:
 			return Keys.UNKNOWN;
