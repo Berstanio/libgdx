@@ -51,8 +51,9 @@ public class IOSGLKView extends MGLKView {
 		super(peer);
 	}
 
-	public IOSGLKView init (CGRect bounds, MGLContext context) {
+	public IOSGLKView init (IOSGraphics graphics, CGRect bounds, MGLContext context) {
 		initWithFrameContext(bounds, context);
+		this.graphics = graphics;
 		return this;
 	}
 
@@ -80,9 +81,4 @@ public class IOSGLKView extends MGLKView {
 	public void drawRect (@ByValue CGRect cgRect) {
 		graphics.draw(this, cgRect);
 	}
-
-	public void setGraphics (IOSGraphics graphics) {
-		this.graphics = graphics;
-	}
-
 }

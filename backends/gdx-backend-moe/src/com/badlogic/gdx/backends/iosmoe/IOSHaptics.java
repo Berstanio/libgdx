@@ -25,6 +25,7 @@ import apple.foundation.NSArray;
 import apple.foundation.NSDictionary;
 import apple.foundation.NSError;
 import apple.foundation.NSNumber;
+import apple.foundation.NSProcessInfo;
 import apple.uikit.UIDevice;
 import apple.uikit.UIImpactFeedbackGenerator;
 import apple.uikit.enums.UIImpactFeedbackStyle;

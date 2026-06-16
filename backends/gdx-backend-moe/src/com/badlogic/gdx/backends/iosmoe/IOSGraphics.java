@@ -111,7 +111,8 @@ public class IOSGraphics extends AbstractGraphics {
 		}
 
 		IOSViewDelegate viewDelegate = IOSViewDelegate.alloc().initWithGraphics(this);
-		view = IOSGLKView.alloc().init(new CGRect(new CGPoint(0, 0), new CGSize(screenBounds.width, screenBounds.height)), context);
+		view = IOSGLKView.alloc().init(this, new CGRect(new CGPoint(0, 0), new CGSize(screenBounds.width, screenBounds.height)),
+			context);
 		view.setDelegate(viewDelegate);
 		view.setDrawableColorFormat(config.colorFormat);
 		view.setDrawableDepthFormat(config.depthFormat);
