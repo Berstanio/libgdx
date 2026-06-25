@@ -324,8 +324,7 @@ public class DefaultGwtInput extends AbstractInput implements GwtInput {
 	@Override
 	public void openTextInputField (NativeInputConfiguration configuration) {
 		configuration.validate();
-		if (isTextInputFieldOpened())
-			throw new GdxRuntimeException("Can't open keyboard if already open with openTextInputField");
+		if (isTextInputFieldOpened()) throw new GdxRuntimeException("Can't open keyboard if already open with openTextInputField");
 		if (nativeInput == null) nativeInput = new GwtNativeInput(canvas);
 		nativeInput.open(configuration);
 	}

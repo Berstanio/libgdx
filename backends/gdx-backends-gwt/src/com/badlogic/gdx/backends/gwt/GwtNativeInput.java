@@ -39,8 +39,8 @@ import com.google.gwt.dom.client.Element;
  * {@link #close}. GWT is single threaded, so everything runs on the main (JS) thread - the
  * {@link TextInputWrapper#writeResults(String, int, int)} contract of "always on the main thread" holds trivially.
  * <p>
- * The object passed to {@link NativeInputConfiguration.NativeInputFieldCustomizer} is this {@code GwtNativeInput}; cast to it from
- * a GWT launcher to tweak {@link #getElement()} beyond what the configuration exposes.
+ * The object passed to {@link NativeInputConfiguration.NativeInputFieldCustomizer} is this {@code GwtNativeInput}; cast to it
+ * from a GWT launcher to tweak {@link #getElement()} beyond what the configuration exposes.
  * <p>
  * Keyboard-height tracking and repositioning the field above the keyboard are driven externally by
  * {@link GwtKeyboardHeightProvider} via {@link DefaultGwtInput#onKeyboardMetricsChanged(boolean, int)}, which calls
@@ -246,8 +246,8 @@ public class GwtNativeInput {
 
 	// --- called from JSNI listeners ---
 
-	/** Validates the text about to be inserted (the delta), mirroring the native backends which feed the validator only the
-	 * newly inserted characters - never the whole field, so deletions are never blocked. Returns true to cancel the edit.
+	/** Validates the text about to be inserted (the delta), mirroring the native backends which feed the validator only the newly
+	 * inserted characters - never the whole field, so deletions are never blocked. Returns true to cancel the edit.
 	 * @param data the text being inserted, or null for deletions/formatting/etc. (which are always allowed) */
 	private boolean onBeforeInput (String data) {
 		if (!open || element == null || data == null) return false;
