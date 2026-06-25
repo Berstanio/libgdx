@@ -88,19 +88,17 @@ public class GwtNativeInput {
 
 		TextInputWrapper wrapper = configuration.getTextInputWrapper();
 		String initial = wrapper.getText();
+		setElementValue(element, initial);
+		setSelectionRange(element, wrapper.getSelectionStart(), wrapper.getSelectionEnd());
 
 		// Customizations win over the defaults, applied after libGDX configured the field (mirrors the other backends).
 		if (configuration.getFieldCustomizer() != null) configuration.getFieldCustomizer().customize(this);
-
-		setElementValue(element, initial);
-		setSelectionRange(element, wrapper.getSelectionStart(), wrapper.getSelectionEnd());
 
 		open = true;
 		reposition();
 		// Focus must happen synchronously inside the user gesture that triggered openTextInputField, otherwise mobile browsers
 		// won't raise the soft keyboard. DefaultGwtInput dispatches input events synchronously, so we are in that context.
 		focusElement(element);
-
 	}
 
 	/** Writes back the final results, runs the close callbacks and tears down the field. */
@@ -393,14 +391,6 @@ public class GwtNativeInput {
 
 	private native void setElementValue (Element el, String value) /*-{
 		el.value = value;
-	}-*/;
-
-	private native void insertInitialText (Element el, String text) /*-{
-		// Insert via execCommand so the text joins the field's editing/undo state.
-		// A directly-assigned .value leaves Android IMEs unable to recompose it, so
-		// backspace updates the keyboard's buffer but never deletes from the DOM.
-		try { $doc.execCommand("insertText", false, text); } catch (e) {}
-		if (el.value !== text) el.value = text; // fallback if execCommand is unavailable/no-op
 	}-*/;
 
 	private native int getSelectionStart (Element el) /*-{

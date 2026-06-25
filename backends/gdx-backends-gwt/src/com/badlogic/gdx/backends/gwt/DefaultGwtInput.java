@@ -783,7 +783,7 @@ public class DefaultGwtInput extends AbstractInput implements GwtInput {
 			e.preventDefault();
 		}
 
-		if (hasFocus && !e.getType().equals("blur")) {
+		if (hasFocus && !e.getType().equals("blur") && !isTextInputFieldOpened()) {
 			if (e.getType().equals("keydown")) {
 				// Gdx.app.log("DefaultGwtInput", "keydown");
 				int code = keyForCode(e.getKeyCode(), getKeyLocationJSNI(e));
