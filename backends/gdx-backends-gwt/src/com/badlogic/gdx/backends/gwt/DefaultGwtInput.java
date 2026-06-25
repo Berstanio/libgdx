@@ -22,6 +22,8 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.backends.gwt.widgets.TextInputDialogBox;
 import com.badlogic.gdx.backends.gwt.widgets.TextInputDialogBox.TextInputDialogListener;
 import com.badlogic.gdx.input.NativeInputConfiguration;
+import com.badlogic.gdx.input.NativeInputConfiguration.NativeInputCloseCallback;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.IntMap;
 import com.badlogic.gdx.utils.IntSet;
 import com.badlogic.gdx.utils.IntSet.IntSetIterator;
@@ -53,6 +55,12 @@ public class DefaultGwtInput extends AbstractInput implements GwtInput {
 	boolean hasFocus = true;
 	GwtAccelerometer accelerometer;
 	GwtGyroscope gyroscope;
+	private GwtNativeInput nativeInput;
+	private GwtKeyboardHeightProvider keyboardHeightProvider;
+	private KeyboardHeightObserver keyboardHeightObserver;
+	private boolean keyboardVisible;
+	private boolean observerVisible;
+	private int observerHeight;
 
 	public DefaultGwtInput (CanvasElement canvas, GwtApplicationConfiguration config) {
 		this.canvas = canvas;
@@ -100,6 +108,7 @@ public class DefaultGwtInput extends AbstractInput implements GwtInput {
 			}
 		}
 		hookEvents();
+		keyboardHeightProvider = new GwtKeyboardHeightProvider(this);
 
 		// backwards compatibility: backspace was caught in older versions
 		setCatchKey(Keys.BACKSPACE, true);
@@ -314,17 +323,68 @@ public class DefaultGwtInput extends AbstractInput implements GwtInput {
 
 	@Override
 	public void openTextInputField (NativeInputConfiguration configuration) {
-
+		configuration.validate();
+		if (isTextInputFieldOpened())
+			throw new GdxRuntimeException("Can't open keyboard if already open with openTextInputField");
+		if (nativeInput == null) nativeInput = new GwtNativeInput(canvas);
+		nativeInput.open(configuration);
 	}
 
 	@Override
-	public void closeTextInputField (boolean sendReturn) {
+	public void closeTextInputField (boolean isConfirmative, NativeInputCloseCallback callback) {
+		if (nativeInput != null) nativeInput.close(isConfirmative, callback);
+	}
 
+	@Override
+	public boolean isTextInputFieldOpened () {
+		return nativeInput != null && nativeInput.isOpen();
 	}
 
 	@Override
 	public void setKeyboardHeightObserver (KeyboardHeightObserver observer) {
+		this.keyboardHeightObserver = observer;
+	}
 
+	/** Entry point for {@link GwtKeyboardHeightProvider}: the browser keyboard changed height/visibility. Drives the open native
+	 * input field's layout (reposition above the keyboard, close on dismiss) and the public {@link KeyboardHeightObserver},
+	 * mirroring the keyboard-height providers on the native backends. */
+	void onKeyboardMetricsChanged (boolean visible, int height) {
+		boolean wasVisible = keyboardVisible;
+		keyboardVisible = visible;
+		if (isTextInputFieldOpened()) {
+			if (wasVisible && !visible) {
+				// The keyboard was dismissed while a field is open: close it (mirrors the native backends).
+				closeTextInputField(false);
+				dispatchKeyboardObserver(false, height);
+				return;
+			}
+			nativeInput.reposition();
+			if (visible)
+				dispatchKeyboardObserver(true, height + nativeInput.getContainerHeight());
+			else
+				dispatchKeyboardObserver(false, height);
+			return;
+		}
+		dispatchKeyboardObserver(visible, height);
+	}
+
+	/** Fires the public observer's show/hide/height callbacks, de-duplicated against the last reported state. */
+	private void dispatchKeyboardObserver (boolean visible, int height) {
+		if (keyboardHeightObserver == null) return;
+		boolean visibilityChanged = visible != observerVisible;
+		boolean heightChanged = height != observerHeight;
+		if (!visibilityChanged && !heightChanged) return;
+		if (visibilityChanged) {
+			if (visible)
+				keyboardHeightObserver.onKeyboardShow(height);
+			else
+				keyboardHeightObserver.onKeyboardHide();
+		} else if (visible) {
+			keyboardHeightObserver.onKeyboardShow(height);
+		}
+		if (heightChanged) keyboardHeightObserver.onKeyboardHeightChanged(height);
+		observerVisible = visible;
+		observerHeight = height;
 	}
 
 	@Override
